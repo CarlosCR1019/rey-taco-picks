@@ -695,7 +695,7 @@ Devuelve tu dictamen de aprobación y ajustes recomendados.
     try:
         resp_auditor = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt_auditor}],
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             temperature=0.2
         ).choices[0].message.content.strip()
         print("   ✅ [Risk Auditor] Auditoría de riesgo y correlación completada.")
