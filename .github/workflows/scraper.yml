@@ -1,4 +1,4 @@
-name: Rey Taco Picks Bot
+name: Rey Taco Picks Bot (Cloud AI)
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
     - cron: '0 16 * * *'   # 10:00 AM México - Picks de la mañana
     - cron: '0 22 * * *'   # 4:00 PM México - Picks de la tarde
     - cron: '0 5 * * *'    # 11:00 PM México - Verificar resultados
-  workflow_dispatch:        # Permite ejecutarlo manualmente desde GitHub
+  workflow_dispatch:        # Permite ejecutarlo manualmente desde GitHub 24/7
 
 jobs:
   scraper:
