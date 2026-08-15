@@ -1,0 +1,22 @@
+{
+  "name": "Rey Taco Picks - Sports Analytics & AI",
+  "short_name": "Rey Taco",
+  "description": "Predicciones de apuestas deportivas y análisis con Inteligencia Artificial",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1a",
+  "theme_color": "#0a0f1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

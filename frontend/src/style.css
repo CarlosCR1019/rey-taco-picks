@@ -821,6 +821,184 @@ button {
   .stats-bar { grid-template-columns: 1fr; gap: 1rem; }
   .picks-grid { grid-template-columns: 1fr; }
   .chart-grid { grid-template-columns: 1fr; }
+  .header-actions { gap: 0.5rem; }
+  .calc-btn { padding: 0.5rem 0.75rem; font-size: 0.8rem; }
   .tickets-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
   .table-container { border-radius: 0; border-left: none; border-right: none; }
+}
+
+/* Calculadora Button in Header */
+.calc-btn {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--gold-accent);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.calc-btn:hover {
+  background: var(--gold-accent);
+  color: #0a0f1a;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
+}
+
+/* PWA Install Banner */
+.pwa-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(90deg, #111827 0%, #1e293b 100%);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--gold-accent);
+  border-radius: 10px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.pwa-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pwa-icon {
+  font-size: 1.8rem;
+}
+
+.pwa-info strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.pwa-info p {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.pwa-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pwa-btn {
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+}
+
+.pwa-close-btn {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+}
+
+.pwa-close-btn:hover {
+  color: white;
+}
+
+/* Calculadora Modal */
+.calc-modal-content {
+  max-width: 550px;
+}
+
+.calc-input {
+  width: 100%;
+  padding: 0.85rem;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--gold-accent);
+  border-radius: 8px;
+  color: var(--gold-accent);
+  font-size: 1.3rem;
+  font-weight: 800;
+  box-sizing: border-box;
+}
+
+.calc-results {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1.25rem;
+}
+
+.calc-row-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.75rem;
+}
+
+.calc-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.calc-row:last-child {
+  border-bottom: none;
+}
+
+.calc-row strong {
+  font-size: 0.9rem;
+  display: block;
+}
+
+.calc-row p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.calc-units {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.calc-amount {
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.calc-footer-note {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 1.25rem;
+  font-style: italic;
+}
+
+/* Lightbox Modal */
+.ticket-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ticket-zoom-img {
+  max-width: 85vw;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--gold-accent);
 }

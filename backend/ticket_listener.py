@@ -236,6 +236,48 @@ def main():
                         archivos = os.listdir(TICKETS_DIR)
                         fotos = [f for f in archivos if f.endswith(('.jpg', '.png', '.jpeg'))]
                         responder(chat_id, f"📸 Tickets guardados: {len(fotos)}")
+
+                    else:
+                        # 🤖 ASISTENTE IA DE ATENCIÓN AL CLIENTE 24/7 (Groq)
+                        groq_key = os.getenv("GROQ_API_KEY")
+                        if groq_key:
+                            try:
+                                from groq import Groq
+                                ai_client = Groq(api_key=groq_key)
+                                prompt_soporte = f"""
+Eres "TacoBot", el asistente oficial de atención a clientes y soporte de Rey Taco Picks.
+Un usuario en Telegram te ha enviado este mensaje:
+"{raw_text}"
+
+INFORMACIÓN OFICIAL DEL SERVICIO:
+- Suscripción VIP: Acceso completo a picks +EV, Córners, Hándicaps y 3 Parlays diarios en https://rey-taco-picks-web.onrender.com y en Telegram.
+- PAGO POR TRANSFERENCIA SPEI (BBVA México):
+  • Banco: BBVA México
+  • Titular: Carlos Alberto Gutierrez Ramirez
+  • Cuenta CLABE: 012 180 01522813375 9
+  • Concepto: Su correo electrónico
+- CONTACTO DIRECTO WHATSAPP:
+  • WhatsApp oficial de Carlos: +52 56 3933 1102 (https://wa.me/525639331102)
+- FACTURACIÓN: Factura global disponible para todas las suscripciones.
+
+INSTRUCCIONES DE RESPUESTA:
+- Responde en español con tono amable, profesional y entusiasta (usa emojis acordes 🌮👑).
+- Si preguntan por pagos, cuentas o cómo suscribirse, proporciona los datos de BBVA y el WhatsApp de Carlos.
+- Si preguntan por términos de apuestas (Hándicap, Córners, Over/Under), explícaselos de forma sencilla y clara.
+- Mantén la respuesta concisa y directa (máximo 2 párrafos).
+"""
+                                chat_completion = ai_client.chat.completions.create(
+                                    messages=[{"role": "user", "content": prompt_soporte}],
+                                    model="llama-3.1-8b-instant",
+                                    temperature=0.3
+                                )
+                                respuesta_ia = chat_completion.choices[0].message.content.strip()
+                                responder(chat_id, respuesta_ia)
+                            except Exception as e:
+                                print(f"   ⚠️ Error en respuesta IA: {e}")
+                                responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactar a Carlos en WhatsApp: 5639331102 (https://wa.me/525639331102) o revisar https://rey-taco-picks-web.onrender.com 🌮")
+                        else:
+                            responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactar a Carlos en WhatsApp: 5639331102 (https://wa.me/525639331102) 🌮")
                     
         except KeyboardInterrupt:
             print("\n🛑 Listener detenido.")

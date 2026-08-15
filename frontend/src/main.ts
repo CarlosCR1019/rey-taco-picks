@@ -18,10 +18,26 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <h1>Rey Taco <span class="logo-accent">Picks</span></h1>
       </div>
       <div class="header-actions">
+        <button id="calc-btn" class="calc-btn">🧮 Calculadora</button>
         <button id="login-btn" class="login-btn">Iniciar Sesión</button>
         <button class="premium-badge">Acceso Premium</button>
       </div>
     </header>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-banner" class="pwa-banner hidden">
+      <div class="pwa-info">
+        <span class="pwa-icon">📱</span>
+        <div>
+          <strong>Instala Rey Taco Picks</strong>
+          <p>Accede más rápido y recibe alertas directamente en tu pantalla de inicio.</p>
+        </div>
+      </div>
+      <div class="pwa-actions">
+        <button id="pwa-install-btn" class="btn-gold pwa-btn">Instalar</button>
+        <button id="pwa-dismiss-btn" class="pwa-close-btn">&times;</button>
+      </div>
+    </div>
 
     <main>
       <section class="stats-bar">
@@ -190,6 +206,74 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           </form>
         </div>
 
+    <!-- Stake Calculator Modal -->
+    <div id="calc-modal" class="modal-overlay hidden">
+      <div class="modal-content calc-modal-content">
+        <button id="close-calc-modal" class="close-btn">&times;</button>
+        <div class="modal-header">
+          <h3 class="modal-title">🧮 Calculadora de Gestión de Bankroll</h3>
+          <p class="modal-subtitle">Estrategia Kelly Criterion y asignación óptima de Unidades</p>
+        </div>
+        
+        <div class="calc-body">
+          <div class="form-group">
+            <label>Tu Capital / Bankroll Total ($MXN)</label>
+            <input type="number" id="calc-bankroll-input" value="2000" min="100" step="50" class="calc-input" />
+          </div>
+
+          <div class="calc-results">
+            <div class="calc-row-header">
+              <span>Tipo de Selección</span>
+              <span>Stake Sugerido</span>
+              <span>Monto en Pesos</span>
+            </div>
+
+            <div class="calc-row">
+              <div>
+                <strong>💎 Pick de Alta Confianza (90%+)</strong>
+                <p>Ventaja matemática +EV validada</p>
+              </div>
+              <span class="calc-units">2.5 Unidades (5%)</span>
+              <span id="stake-high" class="calc-amount text-green">$100 MXN</span>
+            </div>
+
+            <div class="calc-row">
+              <div>
+                <strong>⛳ Córners / Hándicap Asiático</strong>
+                <p>Mercado de micro-estadísticas</p>
+              </div>
+              <span class="calc-units">1.5 Unidades (3%)</span>
+              <span id="stake-corners" class="calc-amount text-gold">$60 MXN</span>
+            </div>
+
+            <div class="calc-row">
+              <div>
+                <strong>🟢 Parlay Seguro (Cuota ~2.40)</strong>
+                <p>2 selecciones de alta correlación</p>
+              </div>
+              <span class="calc-units">1.0 Unidad (2%)</span>
+              <span id="stake-parlay-safe" class="calc-amount text-cyan">$40 MXN</span>
+            </div>
+
+            <div class="calc-row">
+              <div>
+                <strong>💣 Parlay Bomba (+EV Value Bomb)</strong>
+                <p>Multiplicador alto (Cuota 4.50 - 7.50)</p>
+              </div>
+              <span class="calc-units">0.25 Unidades (0.5%)</span>
+              <span id="stake-parlay-bomb" class="calc-amount text-red">$10 MXN</span>
+            </div>
+          </div>
+          <p class="calc-footer-note">💡 Regla de oro de Rey Taco: Nunca apuestes más del 5% de tu capital en una sola jugada.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ticket Zoom Lightbox Modal -->
+    <div id="ticket-modal" class="modal-overlay hidden">
+      <div class="ticket-modal-content">
+        <button id="close-ticket-modal" class="close-btn">&times;</button>
+        <img id="ticket-zoom-img" src="" alt="Ticket Ganador Zoom" class="ticket-zoom-img" />
       </div>
     </div>
   </div>
@@ -688,10 +772,103 @@ function renderTickets(files: string[]) {
   if (!grid) return;
   
   grid.innerHTML = files.map(f => `
-    <div class="ticket-card">
+    <div class="ticket-card" onclick="openTicketZoom('/tickets/${f}')">
       <img src="/tickets/${f}" alt="Ticket Ganador" loading="lazy" />
     </div>
   `).join('');
+}
+
+// Ticket Lightbox Zoom
+(window as any).openTicketZoom = function(src: string) {
+  const modal = document.getElementById('ticket-modal')!;
+  const img = document.getElementById('ticket-zoom-img') as HTMLImageElement;
+  img.src = src;
+  modal.classList.remove('hidden');
+};
+
+const closeTicketModal = document.getElementById('close-ticket-modal')!;
+closeTicketModal.addEventListener('click', () => {
+  document.getElementById('ticket-modal')!.classList.add('hidden');
+});
+
+// ============================================================
+//  CALCULADORA DE STAKE & BANKROLL
+// ============================================================
+const calcBtn = document.getElementById('calc-btn')!;
+const calcModal = document.getElementById('calc-modal')!;
+const closeCalcModal = document.getElementById('close-calc-modal')!;
+const bankrollInput = document.getElementById('calc-bankroll-input') as HTMLInputElement;
+
+const stakeHighEl = document.getElementById('stake-high')!;
+const stakeCornersEl = document.getElementById('stake-corners')!;
+const stakeParlaySafeEl = document.getElementById('stake-parlay-safe')!;
+const stakeParlayBombEl = document.getElementById('stake-parlay-bomb')!;
+
+function updateStakeCalculations() {
+  const bankroll = parseFloat(bankrollInput.value) || 0;
+  
+  // 💎 Alta Confianza: 5%
+  const highVal = Math.round(bankroll * 0.05);
+  // ⛳ Córners/Hándicap: 3%
+  const cornersVal = Math.round(bankroll * 0.03);
+  // 🟢 Parlay Seguro: 2%
+  const parlaySafeVal = Math.round(bankroll * 0.02);
+  // 💣 Parlay Bomba: 0.5%
+  const parlayBombVal = Math.max(10, Math.round(bankroll * 0.005));
+
+  stakeHighEl.textContent = `$${highVal} MXN`;
+  stakeCornersEl.textContent = `$${cornersVal} MXN`;
+  stakeParlaySafeEl.textContent = `$${parlaySafeVal} MXN`;
+  stakeParlayBombEl.textContent = `$${parlayBombVal} MXN`;
+}
+
+if (calcBtn && calcModal) {
+  calcBtn.addEventListener('click', () => {
+    calcModal.classList.remove('hidden');
+    updateStakeCalculations();
+  });
+  
+  closeCalcModal.addEventListener('click', () => {
+    calcModal.classList.add('hidden');
+  });
+
+  bankrollInput.addEventListener('input', updateStakeCalculations);
+}
+
+// ============================================================
+//  PWA INSTALLATION LOGIC
+// ============================================================
+let deferredPrompt: any = null;
+const pwaBanner = document.getElementById('pwa-banner')!;
+const pwaInstallBtn = document.getElementById('pwa-install-btn')!;
+const pwaDismissBtn = document.getElementById('pwa-dismiss-btn')!;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (pwaBanner) {
+    pwaBanner.classList.remove('hidden');
+  }
+});
+
+if (pwaInstallBtn) {
+  pwaInstallBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        console.log('Usuario instaló PWA');
+      }
+      deferredPrompt = null;
+      pwaBanner.classList.add('hidden');
+    }
+  });
+}
+
+if (pwaDismissBtn) {
+  pwaDismissBtn.addEventListener('click', () => {
+    pwaBanner.classList.add('hidden');
+  });
 }
 
 // ============================================================
@@ -775,3 +952,4 @@ function initCharts() {
 
 // Initialize charts after DOM is ready
 setTimeout(initCharts, 500);
+
