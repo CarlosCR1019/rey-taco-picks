@@ -35,21 +35,38 @@ else:
 #  FASE 0: CONFIGURACIÓN DEL NAVEGADOR
 # ============================================================
 def get_chrome_version():
-    """Detecta la versión mayor de Google Chrome instalada en el sistema."""
+    """Detecta la versión mayor de Google Chrome instalada en el sistema (Linux / Windows / Mac)."""
+    # 1. En Linux / Mac / CLI (GitHub Actions usa Ubuntu)
     try:
-        import winreg
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Google\Chrome\BLBeacon")
-        version, _ = winreg.QueryValueEx(key, "version")
-        return int(version.split('.')[0])
+        import subprocess
+        for cmd in ["google-chrome --version", "google-chrome-stable --version", "chromium --version", "chromium-browser --version", "chrome --version"]:
+            try:
+                output = subprocess.check_output(cmd, shell=True, stderr=subprocess.DEVNULL).decode().strip()
+                match = re.search(r'(\d+)\.\d+\.\d+', output)
+                if match:
+                    return int(match.group(1))
+            except Exception:
+                continue
     except Exception:
         pass
+
+    # 2. En Windows (Registro de Windows)
     try:
         import winreg
-        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"Software\Google\Chrome\BLBeacon")
-        version, _ = winreg.QueryValueEx(key, "version")
-        return int(version.split('.')[0])
+        for root in [winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE]:
+            try:
+                key = winreg.OpenKey(root, r"Software\Google\Chrome\BLBeacon")
+                version, _ = winreg.QueryValueEx(key, "version")
+                return int(version.split('.')[0])
+            except Exception:
+                pass
     except Exception:
         pass
+
+    # 3. Fallback inteligente en CI / GitHub Actions
+    if os.getenv("CI") or os.getenv("GITHUB_ACTIONS"):
+        return 151
+
     return None
 
 def get_chrome_driver():
