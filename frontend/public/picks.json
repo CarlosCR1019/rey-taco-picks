@@ -1,0 +1,56 @@
+[
+    {
+        "categoria": "Fútbol",
+        "partido": "Pachuca vs Puebla",
+        "pick": "Pachuca Gana",
+        "cuota": "1.83",
+        "confianza": "80%",
+        "razonamiento": "Pachuca tiene un buen rendimiento en casa y Puebla ha tenido problemas en sus últimos partidos",
+        "es_parlay": false
+    },
+    {
+        "categoria": "Fútbol",
+        "partido": "Tigres UANL vs Juarez",
+        "pick": "Tigres UANL Gana",
+        "cuota": "1.48",
+        "confianza": "85%",
+        "razonamiento": "Tigres UANL es uno de los equipos más fuertes de la liga y Juarez ha tenido problemas en sus últimos partidos",
+        "es_parlay": false
+    },
+    {
+        "categoria": "Fútbol",
+        "partido": "América vs Atlas",
+        "pick": "América Gana",
+        "cuota": "1.57",
+        "confianza": "82%",
+        "razonamiento": "América tiene un buen historial en casa y Atlas ha tenido problemas en sus últimos partidos",
+        "es_parlay": false
+    },
+    {
+        "categoria": "Fútbol",
+        "partido": "Cruz Azul vs Tijuana",
+        "pick": "Cruz Azul Gana",
+        "cuota": "1.62",
+        "confianza": "80%",
+        "razonamiento": "Cruz Azul tiene un buen rendimiento en casa y Tijuana ha tenido problemas en sus últimos partidos",
+        "es_parlay": false
+    },
+    {
+        "categoria": "Fútbol",
+        "partido": "Monterrey vs Juarez",
+        "pick": "Monterrey Gana",
+        "cuota": "1.55",
+        "confianza": "85%",
+        "razonamiento": "Monterrey es uno de los equipos más fuertes de la liga y Juarez ha tenido problemas en sus últimos partidos",
+        "es_parlay": false
+    },
+    {
+        "categoria": "Fútbol",
+        "partido": "Pachuca vs Puebla y Tigres UANL vs Juarez",
+        "pick": "Pachuca Gana y Tigres UANL Gana",
+        "cuota": "2.65",
+        "confianza": "80%",
+        "razonamiento": "Ambos equipos tienen un buen rendimiento en casa y sus oponentes han tenido problemas en sus últimos partidos",
+        "es_parlay": true
+    }
+]

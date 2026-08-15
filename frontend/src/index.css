@@ -1,0 +1,34 @@
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #0B0F19; /* Very dark blue/slate */
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #0B0F19;
+  background-image: radial-gradient(circle at 50% 0%, #1A2235 0%, #0B0F19 100%);
+  color: #E2E8F0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #F8FAFC;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
