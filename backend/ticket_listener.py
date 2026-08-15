@@ -253,16 +253,16 @@ INFORMACIÓN OFICIAL DEL SERVICIO:
 - Suscripción VIP: Acceso completo a picks +EV, Córners, Hándicaps y 3 Parlays diarios en https://rey-taco-picks-web.onrender.com y en Telegram.
 - PAGO POR TRANSFERENCIA SPEI (BBVA México):
   • Banco: BBVA México
-  • Titular: Carlos Alberto Gutierrez Ramirez
+  • Beneficiario / Titular: Rey Taco Picks
   • Cuenta CLABE: 012 180 01522813375 9
   • Concepto: Su correo electrónico
 - CONTACTO DIRECTO WHATSAPP:
-  • WhatsApp oficial de Carlos: +52 56 3933 1102 (https://wa.me/525639331102)
+  • WhatsApp oficial de atención: +52 56 3933 1102 (https://wa.me/525639331102)
 - FACTURACIÓN: Factura global disponible para todas las suscripciones.
 
 INSTRUCCIONES DE RESPUESTA:
 - Responde en español con tono amable, profesional y entusiasta (usa emojis acordes 🌮👑).
-- Si preguntan por pagos, cuentas o cómo suscribirse, proporciona los datos de BBVA y el WhatsApp de Carlos.
+- Si preguntan por pagos, cuentas o cómo suscribirse, proporciona los datos de BBVA y el WhatsApp oficial.
 - Si preguntan por términos de apuestas (Hándicap, Córners, Over/Under), explícaselos de forma sencilla y clara.
 - Mantén la respuesta concisa y directa (máximo 2 párrafos).
 """
@@ -275,9 +275,9 @@ INSTRUCCIONES DE RESPUESTA:
                                 responder(chat_id, respuesta_ia)
                             except Exception as e:
                                 print(f"   ⚠️ Error en respuesta IA: {e}")
-                                responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactar a Carlos en WhatsApp: 5639331102 (https://wa.me/525639331102) o revisar https://rey-taco-picks-web.onrender.com 🌮")
+                                responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) o revisar https://rey-taco-picks-web.onrender.com 🌮")
                         else:
-                            responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactar a Carlos en WhatsApp: 5639331102 (https://wa.me/525639331102) 🌮")
+                            responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) 🌮")
                     
         except KeyboardInterrupt:
             print("\n🛑 Listener detenido.")

@@ -157,8 +157,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <strong class="spei-val">BBVA México</strong>
             </div>
             <div class="spei-row">
-              <span class="spei-label">Titular:</span>
-              <strong class="spei-val">Carlos Alberto Gutierrez Ramirez</strong>
+              <span class="spei-label">Beneficiario / Titular:</span>
+              <strong class="spei-val">Rey Taco Picks</strong>
             </div>
             <div class="spei-row">
               <span class="spei-label">Cuenta CLABE:</span>
@@ -177,13 +177,13 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
             <div class="spei-row">
               <span class="spei-label">Concepto:</span>
-              <strong class="spei-val text-gold">Tu Nombre o Correo</strong>
+              <strong class="spei-val text-gold">Tu Correo Electrónico</strong>
             </div>
           </div>
 
           <div class="spei-action">
             <p class="spei-note">Una vez hecha tu transferencia, envíanos la captura para activarte de inmediato:</p>
-            <a id="whatsapp-spei-btn" href="https://wa.me/525639331102?text=Hola%20Carlos,%20ya%20realic%C3%A9%20mi%20transferencia%20para%20Rey%20Taco%20Picks%20VIP.%20Mi%20correo%20es:%20" target="_blank" class="whatsapp-btn">
+            <a id="whatsapp-spei-btn" href="https://wa.me/525639331102?text=Hola,%20ya%20realic%C3%A9%20mi%20transferencia%20para%20Rey%20Taco%20Picks%20VIP.%20Mi%20correo%20es:%20" target="_blank" class="whatsapp-btn">
               📲 Enviar Comprobante por WhatsApp
             </a>
           </div>
