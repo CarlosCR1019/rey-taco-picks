@@ -175,49 +175,71 @@ def click_category(driver, category):
     return driver.execute_script(script)
 
 def extract_events_from_page(driver):
-    """Extrae los eventos visibles de la página actual del Shadow DOM filtrando estrictamente hoy y mañana con su horario."""
+    """Extrae ÚNICAMENTE eventos PRE-MATCH (no iniciados) de hoy y mañana, descartando rigurosamente partidos en vivo."""
     script = get_shadow_script() + """
     var shadow = getShadow();
     if(!shadow) return [];
     var containers = shadow.querySelectorAll('div[class*="EventBoxContainer"]');
     var result = [];
     
-    // Obtener días actuales para filtrar fechas lejanas
     var hoy = new Date();
     var diaHoy = hoy.getDate();
     var diaManana = (new Date(hoy.getTime() + 24*60*60*1000)).getDate();
-    var diaPasado = (new Date(hoy.getTime() + 48*60*60*1000)).getDate();
-    var diasValidos = [diaHoy, diaManana, diaPasado];
+    var diasValidos = [diaHoy, diaManana];
+    var horaActual = hoy.getHours();
+    var minActual = hoy.getMinutes();
 
     containers.forEach(c => {
         try {
             var fullText = c.innerText.toLowerCase();
             
-            // Si el contenedor o su sección indica fechas lejanas (más de 2 días), descartar
+            // 1. FILTRO ANTI EN-VIVO ESTRICTO: Descartar si ya empezó el partido
+            var esEnVivo = fullText.includes("en vivo") || 
+                           fullText.includes("live") || 
+                           fullText.includes("1ª mitad") || 
+                           fullText.includes("2ª mitad") || 
+                           fullText.includes("1° tiempo") || 
+                           fullText.includes("2° tiempo") || 
+                           c.querySelector('div[class*="LiveIndicator"], div[class*="LiveBadge"], span[class*="LiveBadge"], div[class*="ScoreBox-"], div[class*="EventScore-"]') !== null ||
+                           /\\b(\\d+°\\s*inning|\\d+ª\\s*entrada|\\d+ª\\s*parte|\\d{1,2}:\\d{2}\\s*min|\\d+\\s*['’]\\s*min|\\d+\\s*['’])\\b/i.test(fullText);
+            
+            if (esEnVivo) return; // DESCARTAR INMEDIATAMENTE
+
+            // 2. Filtro de fechas lejanas (más de 2 días)
             var esFuturoLejano = false;
-            var matchFecha = fullText.match(/(\d{1,2})\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);
+            var matchFecha = fullText.match(/(\\d{1,2})\\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);
             if (matchFecha) {
                 var diaNum = parseInt(matchFecha[1]);
                 if (!diasValidos.includes(diaNum)) {
                     esFuturoLejano = true;
                 }
             }
-
             if (esFuturoLejano) return;
 
-            // Extraer hora/fecha del partido
-            var timeEl = c.querySelector('div[class*="EventTime-"], div[class*="Time-"], span[class*="Time-"], div[class*="LiveIndicator"]');
+            // 3. Extraer y verificar hora
+            var timeEl = c.querySelector('div[class*="EventTime-"], div[class*="Time-"], span[class*="Time-"]');
             var horarioStr = "Hoy";
+            var esPasado = false;
+
             if (timeEl && timeEl.innerText.trim()) {
                 horarioStr = timeEl.innerText.trim();
-            } else if (fullText.includes("en vivo") || fullText.includes("live")) {
-                horarioStr = "En Vivo 🔴";
             } else {
-                var matchHora = c.innerText.match(/(\d{1,2}:\d{2})/);
+                var matchHora = c.innerText.match(/(\\d{1,2}):(\\d{2})/);
                 if (matchHora) {
-                    horarioStr = "Hoy " + matchHora[1] + " hrs";
+                    var h = parseInt(matchHora[1]);
+                    var m = parseInt(matchHora[2]);
+                    // Si la hora es de hoy y ya pasó respecto a la hora actual de la máquina
+                    if (h < horaActual || (h === horaActual && m <= minActual + 5)) {
+                        // Si no dice explícitamente "mañana", es un partido que ya empezó hoy
+                        if (!fullText.includes("mañana") && !fullText.includes("tomorrow")) {
+                            esPasado = true;
+                        }
+                    }
+                    horarioStr = (fullText.includes("mañana") ? "Mañana " : "Hoy ") + matchHora[1] + ":" + matchHora[2] + " hrs";
                 }
             }
+
+            if (esPasado) return; // DESCARTAR: La hora de inicio ya pasó
 
             var names = c.querySelectorAll('div[class*="CompetitorName-"]');
             var odds = c.querySelectorAll('button[class*="OddBoxButton-"]');
@@ -242,7 +264,7 @@ def extract_events_from_page(driver):
     return driver.execute_script(script) or []
 
 def obtener_eventos_odds_api():
-    """Fallback inteligente: Si Playdoit no responde o está en mantenimiento, obtiene partidos de HOY y MAÑANA de The Odds API con fecha/hora CDMX."""
+    """Fallback inteligente: Obtiene ÚNICAMENTE partidos PRE-MATCH futuros (que aún NO inician) de The Odds API con fecha/hora CDMX."""
     if not ODDS_API_KEY:
         return []
     
@@ -250,9 +272,9 @@ def obtener_eventos_odds_api():
     sports = ['soccer_mexico_ligamx', 'baseball_mlb', 'soccer_spain_la_liga', 'soccer_usa_mls', 'soccer_epl']
     eventos_api = []
     
-    # Límites de tiempo: máximo 36 horas desde este instante
     from datetime import datetime, timezone, timedelta
     now_utc = datetime.now(timezone.utc)
+    min_time_utc = now_utc + timedelta(minutes=15) # Mínimo 15 minutos en el futuro
     max_time_utc = now_utc + timedelta(hours=36)
     
     for s in sports:
@@ -267,8 +289,9 @@ def obtener_eventos_odds_api():
                     if commence_str:
                         try:
                             match_dt = datetime.fromisoformat(commence_str.replace('Z', '+00:00'))
-                            if match_dt > max_time_utc:
-                                continue # Descartar partidos de fechas lejanas
+                            # FILTRO ESTRICTO: Solo eventos que aún no empiezan
+                            if match_dt < min_time_utc or match_dt > max_time_utc:
+                                continue 
                             
                             # Convertir a hora de México (UTC-6)
                             cdmx_dt = match_dt - timedelta(hours=6)
@@ -280,7 +303,7 @@ def obtener_eventos_odds_api():
                             else:
                                 horario_str = cdmx_dt.strftime("%d/%m %H:%M hrs")
                         except Exception:
-                            horario_str = "Hoy"
+                            continue
 
                     home = match.get('home_team')
                     away = match.get('away_team')
@@ -307,7 +330,7 @@ def obtener_eventos_odds_api():
         except Exception as e:
             print(f"   ⚠️ Error en {s}: {e}")
             
-    print(f"   ✅ {len(eventos_api)} partidos reales de HOY/MAÑANA listos para análisis.")
+    print(f"   ✅ {len(eventos_api)} partidos PRE-MATCH (futuros) listos para análisis.")
     return eventos_api
 
 # ============================================================
@@ -438,33 +461,34 @@ def fase2_comparacion_mercado(partidos_data):
         return {}
 
 # ============================================================
-#  FASE 3: FILTRO INTELIGENTE (Top 15 por Groq)
+#  FASE 3: FILTRO INTELIGENTE (Top 8 por Groq)
 # ============================================================
 def fase3_filtro_inteligente(partidos_data):
     print("\n" + "="*60)
-    print("🧠  FASE 3: FILTRO INTELIGENTE (Groq selecciona Top 15 Multideporte)")
+    print("🧠  FASE 3: FILTRO INTELIGENTE (Groq selecciona Top 8 Pre-Match Multideporte)")
     print("="*60)
     
     if not partidos_data:
         return []
     
     client = Groq(api_key=GROQ_API_KEY)
-    catalogo = [{"cat": p['categoria'], "partido": p['partido'], "cuotas": p.get('cuotas_superficie', [])} for p in partidos_data]
+    catalogo = [{"cat": p['categoria'], "partido": p['partido'], "horario": p.get('horario', 'Hoy'), "cuotas": p.get('cuotas_superficie', [])} for p in partidos_data]
     
     prompt = f"""
     Catálogo de {len(catalogo)} eventos deportivos. 
-    REGLA CRÍTICA DE TIEMPO (CERO TOLERANCIA):
-    - Selecciona ÚNICAMENTE partidos que se jueguen HOY O MAÑANA a más tardar.
-    - PROHIBIDO rotundo elegir partidos de fechas futuras (próxima semana o meses siguientes).
+    REGLA CRÍTICA PRE-MATCH (CERO TOLERANCIA):
+    - Selecciona ÚNICAMENTE partidos que AÚN NO HAYAN COMENZADO (que se jueguen más tarde hoy o mañana).
+    - PROHIBIDO rotundo elegir partidos que ya estén en juego o cuya hora ya haya pasado.
+    - PROHIBIDO elegir partidos de fechas futuras lejanas (semana que viene).
     
-    Selecciona EXACTAMENTE 15 partidos con mayor potencial, asegurando MÁXIMA DIVERSIDAD DEPORTIVA:
-    - Incluir MLB (Béisbol de hoy), Fútbol Internacional (La Liga, Premier, Champions, Libertadores) y Liga MX que jueguen HOY o MAÑANA.
+    Selecciona EXACTAMENTE 8 partidos con mayor potencial, asegurando MÁXIMA DIVERSIDAD DEPORTIVA:
+    - Incluir MLB (Béisbol de hoy/mañana), Fútbol Internacional (La Liga, Premier, Champions, Libertadores) y Liga MX (ej. Monterrey vs Juárez, Atlas vs Tigres) que jueguen HOY o MAÑANA.
     - Si no hay juegos de NFL hoy o mañana, NO selecciones NFL.
     
     {json.dumps(catalogo)}
     
     Devuelve SOLO un JSON array de strings con los nombres exactos de los partidos.
-    Ejemplo: ["New York Yankees vs Boston Red Sox", "Real Madrid vs Osasuna", "América vs Monterrey"]
+    Ejemplo: ["Monterrey vs Juárez", "Atlas vs Tigres", "New York Yankees vs Boston Red Sox"]
     """
     
     try:
@@ -480,10 +504,10 @@ def fase3_filtro_inteligente(partidos_data):
         print(f"   ✅ Groq seleccionó {len(objetivos)} objetivos para inmersión multideporte.")
         for i, obj in enumerate(objetivos, 1):
             print(f"      {i}. {obj}")
-        return objetivos
+        return objetivos[:8]
     except Exception as e:
-        print(f"   ⚠️ Error en filtro: {e}. Usando los primeros 15.")
-        return [p['partido'] for p in partidos_data[:15]]
+        print(f"   ⚠️ Error en filtro: {e}. Usando los primeros 8.")
+        return [p['partido'] for p in partidos_data[:8]]
 
 # ============================================================
 #  FASE 4: INMERSIÓN QUIRÚRGICA (Insights, Córners, Crear Apuesta)
@@ -503,7 +527,7 @@ def fase4_inmersion(driver, objetivos, partidos_data):
         print(f"\n   [{i}/{len(objetivos)}] Infiltrando: {obj}")
         
         driver.get("https://www.playdoit.mx/es/")
-        time.sleep(5)
+        time.sleep(3)
         click_tab_hoy(driver)
         click_decimal_toggle(driver)
         
@@ -790,8 +814,8 @@ DEBATE DE LOS EXPERTOS:
 {market_context}
 
 ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON):
-0. REGLA TEMPORAL CRÍTICA: TODOS LOS PICKS DEBEN SER EXCLUSIVAMENTE PARA PARTIDOS PROGRAMADOS PARA HOY O MAÑANA A MÁS TARDAR. PROHIBIDO seleccionar partidos de la próxima semana.
-1. PICKS DE TIROS DE ESQUINA (Córners): SOLO PUEDEN SER DE PARTIDOS DE FÚTBOL (Liga MX, La Liga, Premier, Champions, etc.). Ejemplo: "Tigres vs Atlas | Más de 8.5 Córners". ¡NUNCA EN BÉISBOL!
+0. REGLA CRÍTICA PRE-MATCH (CERO TOLERANCIA): TODOS LOS PICKS DEBEN SER EXCLUSIVAMENTE PARA PARTIDOS QUE AÚN NO INICIAN (Pre-match para hoy en la tarde/noche o mañana). PROHIBIDO seleccionar partidos en vivo o cuya hora de inicio ya haya transcurrido.
+1. PICKS DE TIROS DE ESQUINA (Córners): SOLO PUEDEN SER DE PARTIDOS DE FÚTBOL (Liga MX, La Liga, Premier, Champions, etc.). Ejemplo: "Atlas vs Tigres | Más de 8.5 Córners". ¡NUNCA EN BÉISBOL!
 2. PICKS DE BÉISBOL (MLB): Deben usar "Carreras" (Runs), "Ponches" (Strikeouts), "Hits" o "Moneyline". Ejemplo: "Astros vs Mariners | Más de 8.5 Carreras" o "Más de 0.5 Carreras en 1er Inning". ¡NUNCA "GOLES" O "CÓRNERS"!
 3. PICKS DE FÚTBOL AMERICANO (NFL): Deben usar "Yardas", "Touchdowns", "Puntos" o "Spread" (SOLO si el partido se juega HOY o MAÑANA; si no hay partidos de NFL hoy/mañana, NO incluyas NFL).
 4. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
