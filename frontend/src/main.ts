@@ -623,9 +623,13 @@ function renderPicks(picks: any[]) {
 async function fetchPicks() {
   if (supabase) {
     try {
-      const { data, error } = await supabase.from('picks').select('*').order('id', { ascending: true });
+      const { data, error } = await supabase.from('picks').select('*').order('id', { ascending: false }).limit(25);
       if (error) throw error;
-      renderPicks(data);
+      if (data && data.length > 0) {
+        renderPicks(data);
+      } else {
+        fallbackLocalFetch();
+      }
     } catch (err) {
       console.error("Error cargando desde Supabase:", err);
       fallbackLocalFetch();
