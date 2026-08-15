@@ -1,0 +1,5 @@
+selenium
+undetected-chromedriver
+groq
+python-dotenv
+supabase
