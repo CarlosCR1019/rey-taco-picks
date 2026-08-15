@@ -839,40 +839,98 @@ def _guardar_local(picks):
         json.dump(picks, f, indent=4, ensure_ascii=False)
     print(f"   📁 Picks guardados en local: {output_path}")
 
+def formatear_pick_canal(p, numero=1, total=1):
+    valor = " 💎 VALOR +EV" if p.get('tiene_valor') else ""
+    es_parlay = p.get('es_parlay')
+    categoria = p.get('categoria', 'Deportes')
+    partido = p.get('partido', '')
+    pick_text = p.get('pick', '')
+    cuota = p.get('cuota', '')
+    confianza = p.get('confianza', '')
+    razonamiento = p.get('razonamiento', '')
+    odds_mkt = f" (Mercado: {p.get('odds_mercado')})" if p.get('odds_mercado') else ""
+    
+    if es_parlay:
+        header = f"👑 REY TACO PICKS 👑\n🔗 COMBINADA / PARLAY DESTACADO [{numero}/{total}]"
+    elif "esquina" in categoria.lower() or "córner" in categoria.lower():
+        header = f"👑 REY TACO PICKS 👑\n⛳ ANÁLISIS DE TIROS DE ESQUINA [{numero}/{total}]"
+    elif "béisbol" in categoria.lower() or "mlb" in categoria.lower():
+        header = f"👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [{numero}/{total}]"
+    elif "americano" in categoria.lower() or "nfl" in categoria.lower():
+        header = f"👑 REY TACO PICKS 👑\n🏈 ANÁLISIS NFL / AMERICANO [{numero}/{total}]"
+    else:
+        header = f"👑 REY TACO PICKS 👑\n⚽ ANÁLISIS DEL DÍA [{numero}/{total}]"
+        
+    msg = f"{header}\n\n"
+    msg += f"🏟️ Evento: {partido}\n"
+    msg += f"🎯 Selección: {pick_text}\n"
+    msg += f"📊 Cuota: {cuota}{odds_mkt}{valor}\n"
+    msg += f"🔥 Confianza: {confianza}\n\n"
+    
+    if razonamiento:
+        msg += f"🧠 Análisis Alpha (IA):\n{razonamiento}\n\n"
+        
+    msg += "🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com"
+    return msg
+
 def _enviar_telegram(picks):
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         chat_id = os.getenv("TELEGRAM_CHAT_ID")
+        channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
         if not token or not chat_id:
             return
 
-        mensaje = "👑 REY TACO PICKS 5.0 👑\n\n"
+        # 1. Enviar el reporte COMPLETO con todos los picks a Carlos inmediatamente
+        mensaje_admin = "👑 REY TACO PICKS (CARTERA COMPLETA) 👑\n\n"
         for p in picks:
             valor = " 💎VALOR" if p.get('tiene_valor') else ""
             parlay = "🔗 PARLAY: " if p.get('es_parlay') else ""
-            mensaje += f"{parlay}{p.get('categoria', '')}\n"
-            mensaje += f"  {p.get('partido', '')}\n"
-            mensaje += f"  Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
-            mensaje += f"  Confianza: {p.get('confianza', '')}\n\n"
+            mensaje_admin += f"{parlay}{p.get('categoria', '')}\n"
+            mensaje_admin += f"  {p.get('partido', '')}\n"
+            mensaje_admin += f"  Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
+            mensaje_admin += f"  Confianza: {p.get('confianza', '')}\n\n"
         
-        mensaje += "Revisa la web para el analisis completo."
+        mensaje_admin += "Revisa la web para el análisis completo: https://rey-taco-picks-web.onrender.com"
 
-        # Enviar al chat privado
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        data = json.dumps({"chat_id": chat_id, "text": mensaje}).encode('utf-8')
+        data = json.dumps({"chat_id": chat_id, "text": mensaje_admin}).encode('utf-8')
         req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
         with urllib.request.urlopen(req) as resp:
             if resp.getcode() == 200:
-                print("   📱 ✅ Telegram (privado) enviado.")
-        
-        # Enviar al canal público (si está configurado)
-        channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
-        if channel_id:
-            data_ch = json.dumps({"chat_id": channel_id, "text": mensaje}).encode('utf-8')
+                print("   📱 ✅ Telegram (privado completo) enviado a Carlos.")
+
+        # 2. Programación espaciada para el CANAL PÚBLICO
+        if channel_id and picks:
+            # A) Enviar inmediatamente el Pick #1 (Pick Estrella Gratuito)
+            pick_1_msg = formatear_pick_canal(picks[0], numero=1, total=len(picks))
+            data_ch = json.dumps({"chat_id": channel_id, "text": pick_1_msg}).encode('utf-8')
             req_ch = urllib.request.Request(url, data=data_ch, headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req_ch) as resp_ch:
                 if resp_ch.getcode() == 200:
-                    print("   📢 ✅ Telegram (canal) enviado.")
+                    print(f"   📢 ✅ Telegram (canal - Pick #1 inmediato) enviado: {picks[0].get('partido')}")
+
+            # B) Programar los picks restantes espaciados cada 75-90 minutos
+            queue_file = os.path.join(os.path.dirname(__file__), "channel_queue.json")
+            queue = []
+            now = time.time()
+            intervalo_segundos = 75 * 60 # 1 hora y 15 minutos entre cada pick
+            
+            for i, p in enumerate(picks[1:], 2):
+                prog_time = now + ((i - 1) * intervalo_segundos)
+                queue.append({
+                    "pick_id": p.get('id'),
+                    "partido": p.get('partido'),
+                    "timestamp_programado": prog_time,
+                    "fecha_legible": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(prog_time)),
+                    "mensaje": formatear_pick_canal(p, numero=i, total=len(picks)),
+                    "enviado": False
+                })
+                
+            with open(queue_file, "w", encoding="utf-8") as f:
+                json.dump(queue, f, indent=2, ensure_ascii=False)
+            print(f"   ⏳ {len(queue)} picks restantes programados en cola para publicarse cada 75 min a lo largo del día.")
+
     except Exception as e:
         print(f"   📱 ❌ Error Telegram: {e}")
 
