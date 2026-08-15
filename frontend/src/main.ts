@@ -1,14 +1,14 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
 
-// Inicializar Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-let supabase: any = null;
+// Inicializar Supabase con fallback de producción
+const SUPABASE_DEFAULT_URL = 'https://dqwuaocyyohwkkuldsmp.supabase.co';
+const SUPABASE_DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxd3Vhb2N5eW9od2trdWxkc21wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NzQ3OTAsImV4cCI6MjEwMjI1MDc5MH0.bKBhyFHtcAXYgx44rg4-D2CaqktOnUg6ZnvBcTW1CDQ';
 
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
-}
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || SUPABASE_DEFAULT_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || SUPABASE_DEFAULT_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="app-container">
