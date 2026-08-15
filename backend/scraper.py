@@ -34,27 +34,60 @@ else:
 # ============================================================
 #  FASE 0: CONFIGURACIÓN DEL NAVEGADOR
 # ============================================================
+def get_chrome_version():
+    """Detecta la versión mayor de Google Chrome instalada en el sistema."""
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Google\Chrome\BLBeacon")
+        version, _ = winreg.QueryValueEx(key, "version")
+        return int(version.split('.')[0])
+    except Exception:
+        pass
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"Software\Google\Chrome\BLBeacon")
+        version, _ = winreg.QueryValueEx(key, "version")
+        return int(version.split('.')[0])
+    except Exception:
+        pass
+    return None
+
 def get_chrome_driver():
-    options = uc.ChromeOptions()
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--start-maximized")
-    options.add_argument("--disable-gpu")
-    
-    # Modo headless para la nube (GitHub Actions / CI)
-    is_ci = os.getenv("CI") or os.getenv("GITHUB_ACTIONS")
+    def make_options():
+        options = uc.ChromeOptions()
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--start-maximized")
+        options.add_argument("--disable-gpu")
+        
+        # Modo headless para la nube (GitHub Actions / CI)
+        is_ci = os.getenv("CI") or os.getenv("GITHUB_ACTIONS")
+        if is_ci:
+            options.add_argument("--headless=new")
+        return options, is_ci
+
+    opts, is_ci = make_options()
     if is_ci:
-        options.add_argument("--headless=new")
         print("   ☁️ Modo NUBE detectado (headless)")
     else:
         print("   🖥️ Modo LOCAL detectado (con ventana)")
-    
+
+    chrome_ver = get_chrome_version()
+    if chrome_ver:
+        print(f"   🌐 Google Chrome v{chrome_ver} detectado")
+        try:
+            fresh_opts, _ = make_options()
+            return uc.Chrome(options=fresh_opts, version_main=chrome_ver)
+        except Exception as e:
+            print(f"   ⚠️ Intentando inicialización estándar: {e}")
+
     try:
-        driver = uc.Chrome(options=options)
+        fresh_opts, _ = make_options()
+        return uc.Chrome(options=fresh_opts)
     except Exception:
-        driver = uc.Chrome(options=options, version_main=None)
-    return driver
+        fresh_opts, _ = make_options()
+        return uc.Chrome(options=fresh_opts, version_main=None)
 
 # ============================================================
 #  UTILIDADES DE NAVEGACIÓN (Shadow DOM de Altenar)
