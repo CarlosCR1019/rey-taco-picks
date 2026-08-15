@@ -460,6 +460,32 @@ def fase2_comparacion_mercado(partidos_data):
         print(f"   ❌ Error general en comparación de mercado: {e}")
         return {}
 
+def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
+    """Ejecuta la llamada a Groq rotando inteligentemente de modelo si alguno alcanza el rate limit diario."""
+    modelos = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
+    ]
+    for modelo in modelos:
+        try:
+            resp = client.chat.completions.create(
+                messages=messages,
+                model=modelo,
+                temperature=temperature
+            ).choices[0].message.content.strip()
+            if resp:
+                return resp
+        except Exception as e:
+            if "429" in str(e) or "rate_limit" in str(e).lower():
+                print(f"   ⚠️ Rate limit en {modelo}. Probando modelo alternativo...")
+                continue
+            else:
+                print(f"   ⚠️ Error en Groq ({modelo}): {e}")
+                continue
+    return ""
+
 # ============================================================
 #  FASE 3: FILTRO INTELIGENTE (Top 8 por Groq)
 # ============================================================
@@ -492,12 +518,7 @@ def fase3_filtro_inteligente(partidos_data):
     """
     
     try:
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.1
-        ).choices[0].message.content.strip()
-        
+        response = ejecutar_groq_con_fallback(client, [{"role": "user", "content": prompt}], temperature=0.1)
         inicio = response.find('[')
         fin = response.rfind(']') + 1
         objetivos = json.loads(response[inicio:fin])
@@ -719,7 +740,7 @@ CUOTAS PROMEDIO DEL MERCADO GLOBAL (15+ casas de apuestas):
     datos_partidos_str = json.dumps(datos_profundos, indent=2)
 
     # -------------------------------------------------------------
-    # RONDA 1: IA CUANTITATIVA ("Alpha Quant" - Llama 3.3 70B)
+    # RONDA 1: IA CUANTITATIVA ("Alpha Quant")
     # Busca valor matemático (+EV), córners, combos y estadísticas.
     # -------------------------------------------------------------
     print("   🤖 [IA 1: Alpha Quant] Analizando mercados profundos (Córners, Combos, Props, Totales)...")
@@ -751,18 +772,14 @@ REGLAS DE PARLAYS ESTRATÉGICOS:
 Devuelve tu catálogo cuantitativo con las justificaciones matemáticas respetando estrictamente la terminología de cada deporte.
 """
     try:
-        resp_quant = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt_quant}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.2
-        ).choices[0].message.content.strip()
+        resp_quant = ejecutar_groq_con_fallback(client, [{"role": "user", "content": prompt_quant}], temperature=0.2)
         print("   ✅ [Alpha Quant] Propuestas de córners, combos y parlays generadas.")
     except Exception as e:
         print(f"   ⚠️ Error en IA Quant: {e}")
         resp_quant = "Análisis quant no disponible."
 
     # -------------------------------------------------------------
-    # RONDA 2: IA AUDITORA DE RIESGO ("Risk Auditor" - Llama 3.1)
+    # RONDA 2: IA AUDITORA DE RIESGO ("Risk Auditor")
     # Audita trampas, líneas infladas de córners y correlación de parlays.
     # -------------------------------------------------------------
     print("   🛡️ [IA 2: Risk Auditor] Auditando riesgo en córners, combos y combinaciones de parlays...")
@@ -785,18 +802,14 @@ TAREA DE AUDITORÍA:
 Devuelve tu dictamen de aprobación y ajustes recomendados.
 """
     try:
-        resp_auditor = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt_auditor}],
-            model="llama-3.3-70b-versatile",
-            temperature=0.2
-        ).choices[0].message.content.strip()
+        resp_auditor = ejecutar_groq_con_fallback(client, [{"role": "user", "content": prompt_auditor}], temperature=0.2)
         print("   ✅ [Risk Auditor] Auditoría de riesgo y correlación completada.")
     except Exception as e:
         print(f"   ⚠️ Error en IA Auditor: {e}")
         resp_auditor = "Auditoría no disponible."
 
     # -------------------------------------------------------------
-    # RONDA 3: IA JUEZ SUPREMO ("Chief Arbiter" - Llama 3.3 70B)
+    # RONDA 3: IA JUEZ SUPREMO ("Chief Arbiter")
     # Emite la selección definitiva multideporte + Tiros de Esquina + 2 Parlays.
     # -------------------------------------------------------------
     print("   ⚖️ [IA 3: Chief Arbiter] Emitiendo cartera definitiva (Córners, Combos y Parlays Múltiples)...")
@@ -828,8 +841,8 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
 [
     {{
         "categoria": "Tiros de Esquina",
-        "partido": "Tigres UANL vs Atlas",
-        "horario": "Hoy 19:00 hrs",
+        "partido": "Atlas vs Tigres UANL",
+        "horario": "Hoy 21:10 hrs",
         "pick": "Más de 8.5 Tiros de Esquina",
         "cuota": "1.85",
         "confianza": "90%",
@@ -841,7 +854,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
     {{
         "categoria": "Béisbol",
         "partido": "Houston Astros vs Seattle Mariners",
-        "horario": "Hoy 18:10 hrs",
+        "horario": "Hoy 20:10 hrs",
         "pick": "Más de 8.5 Carreras Totales",
         "cuota": "1.90",
         "confianza": "85%",
@@ -852,9 +865,9 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
     }},
     {{
         "categoria": "Parlay Seguro",
-        "partido": "América + NY Yankees",
-        "horario": "Hoy 19:00 hrs / 18:05 hrs",
-        "pick": "América Gana o Empata & Yankees Gana Directo",
+        "partido": "Monterrey vs Juárez + NY Yankees vs Boston Red Sox",
+        "horario": "Hoy 19:10 hrs / 19:05 hrs",
+        "pick": "Monterrey Gana o Empata & Yankees Gana Directo",
         "cuota": "2.45",
         "confianza": "93%",
         "razonamiento": "Combinada de alta probabilidad aprobada por ambos analistas.",
@@ -865,14 +878,10 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
 ]
 """
     try:
-        resp_final = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "Devuelves únicamente JSON puro sin bloques markdown ni texto extra."},
-                {"role": "user", "content": prompt_juez}
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.15
-        ).choices[0].message.content.strip()
+        resp_final = ejecutar_groq_con_fallback(client, [
+            {"role": "system", "content": "Devuelves únicamente JSON puro sin bloques markdown ni texto extra."},
+            {"role": "user", "content": prompt_juez}
+        ], temperature=0.15)
 
         inicio = resp_final.find('[')
         fin = resp_final.rfind(']') + 1
