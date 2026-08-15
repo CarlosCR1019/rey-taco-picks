@@ -408,11 +408,11 @@ PICKS RECIENTES:
         return "Error leyendo historial."
 
 # ============================================================
-#  FASE 6: ANÁLISIS FINAL + ARMADO DE PICKS 5.0
+#  FASE 6: ANÁLISIS FINAL — DEBATE Y CONSENSO MULTI-IA
 # ============================================================
 def fase6_analisis_final(datos_profundos, memoria, market_odds):
     print("\n" + "="*60)
-    print("⚡  FASE 6: ANÁLISIS FINAL (Picks 5.0 con Memoria + Mercado)")
+    print("🧠⚡  FASE 6: DEBATE Y CONSENSO MULTI-IA (Quant vs Auditor vs Juez)")
     print("="*60)
     
     if not GROQ_API_KEY or not datos_profundos:
@@ -420,79 +420,148 @@ def fase6_analisis_final(datos_profundos, memoria, market_odds):
     
     client = Groq(api_key=GROQ_API_KEY)
     
-    # Construir contexto de mercado
+    # Contexto de mercado global
     market_context = ""
     if market_odds:
         market_context = f"""
-    CUOTAS PROMEDIO DEL MERCADO GLOBAL (15+ casas de apuestas):
-    {json.dumps(market_odds, indent=2)}
-    
-    INSTRUCCIÓN: Compara las cuotas de Playdoit contra estas del mercado. Si Playdoit ofrece una cuota MÁS ALTA que el mercado para el mismo resultado, eso es VALOR REAL. Marca "tiene_valor": true en esos picks.
-    """
-    
-    prompt = f"""
-    Eres la IA más avanzada de análisis de apuestas deportivas. Tienes acceso a datos profundos de mercados especiales (Props, Hándicaps, Totales, Goles, Carreras).
-    
-    {memoria}
-    
-    {market_context}
-    
-    DATOS PROFUNDOS DE LOS PARTIDOS SELECCIONADOS:
-    {json.dumps(datos_profundos, indent=2)}
-    
-    TAREA: Genera tus 6 a 8 mejores picks del día basándote en esta información profunda.
-    
-    REGLAS ESTRICTAS DE DIVERSIDAD:
-    1. OBLIGATORIO DIVERSIDAD DE DEPORTES: Incluye al menos 1-2 picks de MLB/Béisbol, 1 pick de NFL (si hay), 1-2 picks de Fútbol Internacional (La Liga, Champions, Libertadores) y máximo 2 de Liga MX.
-    2. DIVERSIDAD DE MERCADOS: NO pongas solo "Equipo Gana" (Moneyline). Explora:
-       - Totales (Over/Under de Goles o Carreras, ej. "Over 2.5 Goles", "Under 8.5 Carreras")
-       - Hándicaps Asiáticos / Spread (ej. "Real Madrid -1.5", "Dodgers -1.5")
-       - Ambos Equipos Anotan (Sí/No)
-       - Player Props / Especiales si están en los datos
-    3. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.10, 1.95).
-    4. El último objeto DEBE ser un "Parlay" combinando 2-3 de tus mejores selecciones con cuota total combinada. "es_parlay": true.
-    5. Si Playdoit ofrece una cuota superior al promedio de mercado, marca "tiene_valor": true y coloca "odds_mercado".
-    6. Razonamiento analítico breve pero contundente que explique la ventaja matemática o táctica.
-    
-    Formato EXACTO (JSON array, nada más):
-    [
-        {{
-            "categoria": "Béisbol",
-            "partido": "New York Yankees vs Boston Red Sox",
-            "pick": "Over 8.5 Carreras",
-            "cuota": "1.90",
-            "confianza": "88%",
-            "razonamiento": "Viento a favor de bateadores y abridores con ERA alto en las últimas 3 salidas.",
-            "es_parlay": false,
-            "tiene_valor": true,
-            "odds_mercado": "1.82"
-        }}
-    ]
-    """
-    
+CUOTAS PROMEDIO DEL MERCADO GLOBAL (15+ casas de apuestas):
+{json.dumps(market_odds, indent=2)}
+"""
+
+    datos_partidos_str = json.dumps(datos_profundos, indent=2)
+
+    # -------------------------------------------------------------
+    # RONDA 1: IA CUANTITATIVA ("Alpha Quant" - Llama 3.3 70B)
+    # Busca valor matemático (+EV), desajustes y estadísticas.
+    # -------------------------------------------------------------
+    print("   🤖 [IA 1: Alpha Quant] Analizando cuotas y ventajas matemáticas...")
+    prompt_quant = f"""
+Eres "Alpha Quant", una IA experta en modelos matemáticos y valor esperado (+EV) en apuestas deportivas.
+Analiza la siguiente información de partidos y cuotas:
+
+{memoria}
+{market_context}
+DATOS DE PARTIDOS:
+{datos_partidos_str}
+
+TAREA: Propón una lista de 8 a 10 posibles apuestas con ventaja matemática.
+Requisitos:
+- Diversidad: Incluye MLB (Béisbol), NFL (Americano), Fútbol Internacional (Champions, La Liga) y Liga MX.
+- Mercados variados: No solo "Gana". Usa Totales (Over/Under), Hándicaps y Ambos Anotan.
+- Justifica matemáticamente cada propuesta.
+
+Devuelve tu reporte analítico estructurado por partido.
+"""
     try:
-        response = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": "Solo devuelves JSON puro, sin texto ni markdown."},
-                {"role": "user", "content": prompt}
-            ],
+        resp_quant = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_quant}],
             model="llama-3.3-70b-versatile",
             temperature=0.2
         ).choices[0].message.content.strip()
+        print("   ✅ [Alpha Quant] Propuestas iniciales generadas.")
+    except Exception as e:
+        print(f"   ⚠️ Error en IA Quant: {e}")
+        resp_quant = "Análisis quant no disponible."
+
+    # -------------------------------------------------------------
+    # RONDA 2: IA AUDITORA DE RIESGO ("Risk Auditor" - Llama 3.1)
+    # Busca trampas, refuta selecciones dudosas y ajusta mercados.
+    # -------------------------------------------------------------
+    print("   🛡️ [IA 2: Risk Auditor] Auditando riesgos, trampas y debilidades tácticas...")
+    prompt_auditor = f"""
+Eres "Risk Auditor", una IA crítica y contrarian especializada en gestión de riesgo en apuestas deportivas.
+Tu misión es DEBATIR, CUESTIONAR y DESTRUIR las apuestas dudosas propuestas por Alpha Quant.
+
+PROPUESTAS DE ALPHA QUANT:
+{resp_quant}
+
+DATOS REALES DE LOS PARTIDOS:
+{datos_partidos_str}
+
+TAREA:
+1. Identifica cuáles de las propuestas de Alpha Quant son "trampas de las casas de apuestas", tienen cuotas engañosas, o riesgo innecesario.
+2. Para cada una, decide: [APROBAR], [RECHAZAR] o [MODIFICAR MERCADO] (ej. sugerir Over/Under o Hándicap en vez de Moneyline).
+3. Selecciona únicamente las que consideres de RIESGO CONTROLADO Y ALTA PROBABILIDAD REAL.
+
+Devuelve tu dictamen crítico fundamentado.
+"""
+    try:
+        resp_auditor = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt_auditor}],
+            model="llama-3.1-8b-instant",
+            temperature=0.2
+        ).choices[0].message.content.strip()
+        print("   ✅ [Risk Auditor] Auditoría y debate completados.")
+    except Exception as e:
+        print(f"   ⚠️ Error en IA Auditor: {e}")
+        resp_auditor = "Auditoría no disponible."
+
+    # -------------------------------------------------------------
+    # RONDA 3: IA JUEZ SUPREMO ("Chief Arbiter" - Llama 3.3 70B)
+    # Sintetiza el debate y emite el consenso final en JSON.
+    # -------------------------------------------------------------
+    print("   ⚖️ [IA 3: Chief Arbiter] Sintetizando debate y emitiendo consenso definitivo...")
+    prompt_juez = f"""
+Eres el "Chief Odds Arbiter" de Rey Taco Picks. Tu trabajo es emitir el veredicto definitivo tras evaluar el debate entre Alpha Quant y Risk Auditor.
+
+DEBATE DE LOS EXPERTOS:
+--- PROPUESTAS QUANT ---
+{resp_quant}
+
+--- AUDITORÍA DE RIESGO ---
+{resp_auditor}
+
+--- DATOS DE MERCADO GLOBAL ---
+{market_context}
+
+TAREA: Genera la selección final de 6 a 8 picks que obtuvieron CONSENSO UNÁNIME de alta convicción.
+
+REGLAS ESTRICTAS:
+1. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.15, 1.90).
+2. DIVERSIDAD: Combina MLB/Béisbol, NFL, Fútbol Internacional y Liga MX.
+3. MERCADOS: Usa los mercados refinados tras el debate (Totales Over/Under, Hándicaps, Props, Ambos Anotan o Moneylines seguros).
+4. El último objeto DEBE ser un "Parlay" combinando 2-3 de los mejores picks con cuota multiplicada. "es_parlay": true.
+5. Marca "tiene_valor": true cuando la cuota de Playdoit sea ventajosa vs mercado global.
+6. En "razonamiento", resume la conclusión del debate entre el análisis cuántico y el control de riesgo.
+
+Devuelve ÚNICAMENTE un JSON array válido con este formato:
+[
+    {{
+        "categoria": "Béisbol",
+        "partido": "New York Yankees vs Boston Red Sox",
+        "pick": "Over 8.5 Carreras",
+        "cuota": "1.90",
+        "confianza": "91%",
+        "razonamiento": "Consenso IA: Viento a favor y rotación débil. Auditor aprobó total de carreras sobre moneyline.",
+        "es_parlay": false,
+        "tiene_valor": true,
+        "odds_mercado": "1.82"
+    }}
+]
+"""
+    try:
+        resp_final = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "Devuelves únicamente JSON puro sin bloques markdown ni texto extra."},
+                {"role": "user", "content": prompt_juez}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.15
+        ).choices[0].message.content.strip()
+
+        inicio = resp_final.find('[')
+        fin = resp_final.rfind(']') + 1
+        picks = json.loads(resp_final[inicio:fin])
         
-        inicio = response.find('[')
-        fin = response.rfind(']') + 1
-        picks = json.loads(response[inicio:fin])
-        
-        print(f"   ✅ {len(picks)} picks generados por Groq.")
+        print(f"\n   🏆 CONSENSO ALCANZADO: {len(picks)} picks aprobados por el comité de IAs:")
         for p in picks:
             valor = " 💎 VALOR" if p.get('tiene_valor') else ""
             parlay = " 🔗 PARLAY" if p.get('es_parlay') else ""
-            print(f"      → {p.get('partido')} | {p.get('pick')} @ {p.get('cuota')}{valor}{parlay}")
+            print(f"      → [{p.get('categoria')}] {p.get('partido')} | {p.get('pick')} @ {p.get('cuota')}{valor}{parlay}")
         
         return picks
     except Exception as e:
-        print(f"   ❌ Error en análisis final: {e}")
+        print(f"   ❌ Error en síntesis de debate: {e}")
         return []
 
 # ============================================================
