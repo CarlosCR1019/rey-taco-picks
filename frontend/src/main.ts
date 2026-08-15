@@ -463,9 +463,13 @@ updateAuthHeaderState();
 
 function getSportColorClass(sport: string) {
   const s = sport.toLowerCase();
-  if (s.includes('fútbol') || s.includes('futbol') || s.includes('soccer')) return 'tag-green';
+  if (s.includes('parlay') || s.includes('combinad')) return 'tag-gold';
+  if (s.includes('esquina') || s.includes('córner') || s.includes('corner')) return 'tag-purple';
+  if (s.includes('combo') || s.includes('total') || s.includes('over') || s.includes('under')) return 'tag-cyan';
+  if (s.includes('fútbol') || s.includes('futbol') || s.includes('soccer') || s.includes('liga mx')) return 'tag-green';
   if (s.includes('mlb') || s.includes('beisbol') || s.includes('baseball')) return 'tag-blue';
   if (s.includes('nfl') || s.includes('americano') || s.includes('football')) return 'tag-orange';
+  if (s.includes('mma') || s.includes('boxeo') || s.includes('ufc')) return 'tag-red';
   return 'tag-default';
 }
 

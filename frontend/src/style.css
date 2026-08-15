@@ -235,6 +235,10 @@ button {
 .tag-green { background-color: var(--green-win); }
 .tag-blue { background-color: #3b82f6; }
 .tag-orange { background-color: #f97316; }
+.tag-purple { background-color: #a855f7; }
+.tag-cyan { background-color: #06b6d4; }
+.tag-red { background-color: #ef4444; }
+.tag-gold { background: linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%); color: #0a0f1a !important; }
 .tag-default { background-color: #64748b; }
 
 .value-badge {

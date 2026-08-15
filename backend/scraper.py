@@ -432,25 +432,31 @@ CUOTAS PROMEDIO DEL MERCADO GLOBAL (15+ casas de apuestas):
 
     # -------------------------------------------------------------
     # RONDA 1: IA CUANTITATIVA ("Alpha Quant" - Llama 3.3 70B)
-    # Busca valor matemático (+EV), desajustes y estadísticas.
+    # Busca valor matemático (+EV), córners, combos y estadísticas.
     # -------------------------------------------------------------
-    print("   🤖 [IA 1: Alpha Quant] Analizando cuotas y ventajas matemáticas...")
+    print("   🤖 [IA 1: Alpha Quant] Analizando mercados profundos (Córners, Combos, Props, Totales)...")
     prompt_quant = f"""
-Eres "Alpha Quant", una IA experta en modelos matemáticos y valor esperado (+EV) en apuestas deportivas.
-Analiza la siguiente información de partidos y cuotas:
+Eres "Alpha Quant", la IA líder en análisis cuantitativo y micro-estadísticas para apuestas deportivas de élite.
+Analiza los siguientes partidos y mercados especiales de Playdoit:
 
 {memoria}
 {market_context}
-DATOS DE PARTIDOS:
+DATOS DE PARTIDOS Y MERCADOS PROFUNDOS:
 {datos_partidos_str}
 
-TAREA: Propón una lista de 8 a 10 posibles apuestas con ventaja matemática.
-Requisitos:
-- Diversidad: Incluye MLB (Béisbol), NFL (Americano), Fútbol Internacional (Champions, La Liga) y Liga MX.
-- Mercados variados: No solo "Gana". Usa Totales (Over/Under), Hándicaps y Ambos Anotan.
-- Justifica matemáticamente cada propuesta.
+REGLAS DE SELECCIÓN CUANTITATIVA:
+1. PROHIBIDO LIMITARSE A MONEYLINE (GANA DIRECTO): Los apostadores profesionales buscan ventaja en:
+   - TIROS DE ESQUINA (Córners): Over/Under de tiros de esquina (ej. "Más de 8.5 Córners"), Hándicap de Córners.
+   - COMBINADOS DOBLES (Bet Builder): ej. "Gana o Empata (1X) y Más de 1.5 Goles", "Ambos Anotan y Más de 7.5 Córners".
+   - TOTALES (Over/Under de Goles o Carreras en MLB).
+   - HÁNDICAPS ASIÁTICOS / SPREAD.
+   - PLAYER PROPS (MLB Ponches, NFL Yardas, Disparos a Puerta).
+2. PARLAYS ESTRATÉGICOS: Arma 2 o 3 propuestas de Parlays estructurados:
+   - "Parlay Seguro": 2 selecciones de probabilidad >85% (cuota 2.10 - 2.80).
+   - "Parlay Estadístico (Córners / Props)": 2 selecciones de micro-estadísticas (cuota 2.70 - 3.80).
+   - "Parlay Rompe-Bancas (+EV)": 3 selecciones de alto valor combinado (cuota 4.50 - 7.50).
 
-Devuelve tu reporte analítico estructurado por partido.
+Devuelve tu catálogo cuantitativo con las justificaciones matemáticas.
 """
     try:
         resp_quant = client.chat.completions.create(
@@ -458,32 +464,32 @@ Devuelve tu reporte analítico estructurado por partido.
             model="llama-3.3-70b-versatile",
             temperature=0.2
         ).choices[0].message.content.strip()
-        print("   ✅ [Alpha Quant] Propuestas iniciales generadas.")
+        print("   ✅ [Alpha Quant] Propuestas de córners, combos y parlays generadas.")
     except Exception as e:
         print(f"   ⚠️ Error en IA Quant: {e}")
         resp_quant = "Análisis quant no disponible."
 
     # -------------------------------------------------------------
     # RONDA 2: IA AUDITORA DE RIESGO ("Risk Auditor" - Llama 3.1)
-    # Busca trampas, refuta selecciones dudosas y ajusta mercados.
+    # Audita trampas, líneas infladas de córners y correlación de parlays.
     # -------------------------------------------------------------
-    print("   🛡️ [IA 2: Risk Auditor] Auditando riesgos, trampas y debilidades tácticas...")
+    print("   🛡️ [IA 2: Risk Auditor] Auditando riesgo en córners, combos y combinaciones de parlays...")
     prompt_auditor = f"""
-Eres "Risk Auditor", una IA crítica y contrarian especializada en gestión de riesgo en apuestas deportivas.
-Tu misión es DEBATIR, CUESTIONAR y DESTRUIR las apuestas dudosas propuestas por Alpha Quant.
+Eres "Risk Auditor", auditor senior de gestión de riesgo en apuestas deportivas.
+Revisa las propuestas de Alpha Quant:
 
 PROPUESTAS DE ALPHA QUANT:
 {resp_quant}
 
-DATOS REALES DE LOS PARTIDOS:
+DATOS REALES:
 {datos_partidos_str}
 
-TAREA:
-1. Identifica cuáles de las propuestas de Alpha Quant son "trampas de las casas de apuestas", tienen cuotas engañosas, o riesgo innecesario.
-2. Para cada una, decide: [APROBAR], [RECHAZAR] o [MODIFICAR MERCADO] (ej. sugerir Over/Under o Hándicap en vez de Moneyline).
-3. Selecciona únicamente las que consideres de RIESGO CONTROLADO Y ALTA PROBABILIDAD REAL.
+TAREA DE AUDITORÍA:
+1. Evalúa si las líneas de Tiros de Esquina, Totales y Combos son realistas según el estilo de juego de los equipos (posesión, extremos, defensas cerradas).
+2. Audita los Parlays: Asegúrate de que las selecciones combinadas tengan correlación positiva o bajo riesgo de cruzarse.
+3. Si un pick o combinación es arriesgado, sugiere un ajuste más inteligente (ej. bajar la línea de Córners de 9.5 a 8.5, o cambiar a Doble Oportunidad).
 
-Devuelve tu dictamen crítico fundamentado.
+Devuelve tu dictamen de aprobación y ajustes recomendados.
 """
     try:
         resp_auditor = client.chat.completions.create(
@@ -491,51 +497,61 @@ Devuelve tu dictamen crítico fundamentado.
             model="llama-3.1-8b-instant",
             temperature=0.2
         ).choices[0].message.content.strip()
-        print("   ✅ [Risk Auditor] Auditoría y debate completados.")
+        print("   ✅ [Risk Auditor] Auditoría de riesgo y correlación completada.")
     except Exception as e:
         print(f"   ⚠️ Error en IA Auditor: {e}")
         resp_auditor = "Auditoría no disponible."
 
     # -------------------------------------------------------------
     # RONDA 3: IA JUEZ SUPREMO ("Chief Arbiter" - Llama 3.3 70B)
-    # Sintetiza el debate y emite el consenso final en JSON.
+    # Emite la selección definitiva multideporte + Tiros de Esquina + 2 Parlays.
     # -------------------------------------------------------------
-    print("   ⚖️ [IA 3: Chief Arbiter] Sintetizando debate y emitiendo consenso definitivo...")
+    print("   ⚖️ [IA 3: Chief Arbiter] Emitiendo cartera definitiva (Córners, Combos y Parlays Múltiples)...")
     prompt_juez = f"""
-Eres el "Chief Odds Arbiter" de Rey Taco Picks. Tu trabajo es emitir el veredicto definitivo tras evaluar el debate entre Alpha Quant y Risk Auditor.
+Eres el "Chief Odds Arbiter" de Rey Taco Picks. Emite la cartera oficial del día tras evaluar el debate.
 
 DEBATE DE LOS EXPERTOS:
---- PROPUESTAS QUANT ---
+--- ALPHA QUANT ---
 {resp_quant}
 
 --- AUDITORÍA DE RIESGO ---
 {resp_auditor}
 
---- DATOS DE MERCADO GLOBAL ---
+--- CUOTAS DE MERCADO GLOBAL ---
 {market_context}
 
-TAREA: Genera la selección final de 6 a 8 picks que obtuvieron CONSENSO UNÁNIME de alta convicción.
-
-REGLAS ESTRICTAS:
-1. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.15, 1.90).
-2. DIVERSIDAD: Combina MLB/Béisbol, NFL, Fútbol Internacional y Liga MX.
-3. MERCADOS: Usa los mercados refinados tras el debate (Totales Over/Under, Hándicaps, Props, Ambos Anotan o Moneylines seguros).
-4. El último objeto DEBE ser un "Parlay" combinando 2-3 de los mejores picks con cuota multiplicada. "es_parlay": true.
-5. Marca "tiene_valor": true cuando la cuota de Playdoit sea ventajosa vs mercado global.
-6. En "razonamiento", resume la conclusión del debate entre el análisis cuántico y el control de riesgo.
+ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON):
+1. DEBE HABER AL MENOS 1 O 2 PICKS DE TIROS DE ESQUINA (Córners) (ej. "Más de 8.5 Córners").
+2. DEBE HABER AL MENOS 1 O 2 COMBINADOS / TOTALES (ej. "1X y Más de 1.5 Goles", "Over 8.5 Carreras MLB").
+3. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
+   - Parlay 1 ("Parlay Seguro"): 2 selecciones de altísima probabilidad con cuota combinada 2.10 - 2.80. Marcar "es_parlay": true.
+   - Parlay 2 ("Parlay Estadístico Córners/Props" o "Parlay Bomba"): 2-3 selecciones con cuota combinada 3.20 - 6.50. Marcar "es_parlay": true.
+4. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.30, 3.40).
+5. "categoria": "Tiros de Esquina", "Fútbol", "Béisbol", "Parlay Seguro", "Parlay Bomba", etc.
 
 Devuelve ÚNICAMENTE un JSON array válido con este formato:
 [
     {{
-        "categoria": "Béisbol",
-        "partido": "New York Yankees vs Boston Red Sox",
-        "pick": "Over 8.5 Carreras",
-        "cuota": "1.90",
-        "confianza": "91%",
-        "razonamiento": "Consenso IA: Viento a favor y rotación débil. Auditor aprobó total de carreras sobre moneyline.",
+        "categoria": "Tiros de Esquina",
+        "partido": "Tigres UANL vs Atlas",
+        "pick": "Más de 8.5 Tiros de Esquina",
+        "cuota": "1.85",
+        "confianza": "90%",
+        "razonamiento": "Consenso IA: Equipos con alto juego por bandas (promedio combinado de 11.2 córners por partido).",
         "es_parlay": false,
         "tiene_valor": true,
-        "odds_mercado": "1.82"
+        "odds_mercado": "1.78"
+    }},
+    {{
+        "categoria": "Parlay Seguro",
+        "partido": "América + NY Yankees",
+        "pick": "América 1X y +1.5 Goles & Yankees Over 7.5 Carreras",
+        "cuota": "2.45",
+        "confianza": "93%",
+        "razonamiento": "Combinada de alta probabilidad aprobada por ambos analistas.",
+        "es_parlay": true,
+        "tiene_valor": true,
+        "odds_mercado": "2.30"
     }}
 ]
 """
@@ -553,7 +569,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
         fin = resp_final.rfind(']') + 1
         picks = json.loads(resp_final[inicio:fin])
         
-        print(f"\n   🏆 CONSENSO ALCANZADO: {len(picks)} picks aprobados por el comité de IAs:")
+        print(f"\n   🏆 CARTERA APROBADA ({len(picks)} selecciones de alta credibilidad):")
         for p in picks:
             valor = " 💎 VALOR" if p.get('tiene_valor') else ""
             parlay = " 🔗 PARLAY" if p.get('es_parlay') else ""
