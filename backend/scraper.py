@@ -266,7 +266,7 @@ def fase2_comparacion_mercado(partidos_data):
 # ============================================================
 def fase3_filtro_inteligente(partidos_data):
     print("\n" + "="*60)
-    print("🧠  FASE 3: FILTRO INTELIGENTE (Groq selecciona Top 15)")
+    print("🧠  FASE 3: FILTRO INTELIGENTE (Groq selecciona Top 15 Multideporte)")
     print("="*60)
     
     if not partidos_data:
@@ -276,13 +276,15 @@ def fase3_filtro_inteligente(partidos_data):
     catalogo = [{"cat": p['categoria'], "partido": p['partido'], "cuotas": p.get('cuotas_superficie', [])} for p in partidos_data]
     
     prompt = f"""
-    Catálogo de {len(catalogo)} eventos deportivos de hoy. Selecciona EXACTAMENTE 15 partidos que tengan mayor potencial de análisis profundo.
-    Prioriza: ligas importantes, partidos entre equipos conocidos, y cuotas que sugieran partidos reñidos.
+    Catálogo de {len(catalogo)} eventos deportivos de hoy. 
+    Selecciona EXACTAMENTE 15 partidos con mayor potencial, asegurando MÁXIMA DIVERSIDAD DEPORTIVA:
+    - Obligatorio incluir partidos de MLB (Béisbol), NFL (Americano), Fútbol Internacional (Champions, La Liga, Premier, Libertadores) y Liga MX.
+    - NO elijas solo fútbol mexicano. Si hay tenis, boxeo, MMA o MLB, DEBES incluirlos.
     
     {json.dumps(catalogo)}
     
-    Devuelve SOLO un JSON array de strings con los nombres exactos.
-    Ejemplo: ["América vs Monterrey", "Real Madrid vs Barcelona"]
+    Devuelve SOLO un JSON array de strings con los nombres exactos de los partidos.
+    Ejemplo: ["New York Yankees vs Boston Red Sox", "Real Madrid vs Osasuna", "América vs Monterrey", "Kansas City Chiefs vs Detroit Lions"]
     """
     
     try:
@@ -295,7 +297,7 @@ def fase3_filtro_inteligente(partidos_data):
         inicio = response.find('[')
         fin = response.rfind(']') + 1
         objetivos = json.loads(response[inicio:fin])
-        print(f"   ✅ Groq seleccionó {len(objetivos)} objetivos para inmersión.")
+        print(f"   ✅ Groq seleccionó {len(objetivos)} objetivos para inmersión multideporte.")
         for i, obj in enumerate(objetivos, 1):
             print(f"      {i}. {obj}")
         return objetivos
@@ -429,7 +431,7 @@ def fase6_analisis_final(datos_profundos, memoria, market_odds):
     """
     
     prompt = f"""
-    Eres la IA más avanzada de análisis de apuestas deportivas. Tienes acceso a datos profundos de mercados especiales.
+    Eres la IA más avanzada de análisis de apuestas deportivas. Tienes acceso a datos profundos de mercados especiales (Props, Hándicaps, Totales, Goles, Carreras).
     
     {memoria}
     
@@ -438,27 +440,32 @@ def fase6_analisis_final(datos_profundos, memoria, market_odds):
     DATOS PROFUNDOS DE LOS PARTIDOS SELECCIONADOS:
     {json.dumps(datos_profundos, indent=2)}
     
-    TAREA: Genera tus 5 a 8 mejores picks del día basándote en esta información profunda.
+    TAREA: Genera tus 6 a 8 mejores picks del día basándote en esta información profunda.
     
-    REGLAS:
-    1. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 4.50). Convierte americano a decimal siempre.
-    2. El último objeto DEBE ser un "Parlay" combinando 2-3 de tus mejores picks. "es_parlay": true.
-    3. Si tienes datos del mercado, marca "tiene_valor": true cuando Playdoit ofrece mejor cuota que el promedio.
-    4. Incluye "odds_mercado" con la cuota promedio del mercado cuando esté disponible.
-    5. IGNORA partidos en vivo o del futuro (mañana). Solo partidos de HOY pre-partido.
+    REGLAS ESTRICTAS DE DIVERSIDAD:
+    1. OBLIGATORIO DIVERSIDAD DE DEPORTES: Incluye al menos 1-2 picks de MLB/Béisbol, 1 pick de NFL (si hay), 1-2 picks de Fútbol Internacional (La Liga, Champions, Libertadores) y máximo 2 de Liga MX.
+    2. DIVERSIDAD DE MERCADOS: NO pongas solo "Equipo Gana" (Moneyline). Explora:
+       - Totales (Over/Under de Goles o Carreras, ej. "Over 2.5 Goles", "Under 8.5 Carreras")
+       - Hándicaps Asiáticos / Spread (ej. "Real Madrid -1.5", "Dodgers -1.5")
+       - Ambos Equipos Anotan (Sí/No)
+       - Player Props / Especiales si están en los datos
+    3. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.10, 1.95).
+    4. El último objeto DEBE ser un "Parlay" combinando 2-3 de tus mejores selecciones con cuota total combinada. "es_parlay": true.
+    5. Si Playdoit ofrece una cuota superior al promedio de mercado, marca "tiene_valor": true y coloca "odds_mercado".
+    6. Razonamiento analítico breve pero contundente que explique la ventaja matemática o táctica.
     
     Formato EXACTO (JSON array, nada más):
     [
         {{
-            "categoria": "Fútbol",
-            "partido": "América vs Chivas",
-            "pick": "América Gana",
-            "cuota": "1.85",
-            "confianza": "92%",
-            "razonamiento": "Análisis profundo aquí...",
+            "categoria": "Béisbol",
+            "partido": "New York Yankees vs Boston Red Sox",
+            "pick": "Over 8.5 Carreras",
+            "cuota": "1.90",
+            "confianza": "88%",
+            "razonamiento": "Viento a favor de bateadores y abridores con ERA alto en las últimas 3 salidas.",
             "es_parlay": false,
             "tiene_valor": true,
-            "odds_mercado": "1.65"
+            "odds_mercado": "1.82"
         }}
     ]
     """

@@ -167,7 +167,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
           <div class="spei-action">
             <p class="spei-note">Una vez hecha tu transferencia, envíanos la captura para activarte de inmediato:</p>
-            <a id="whatsapp-spei-btn" href="https://wa.me/525546921238?text=Hola%20Carlos,%20ya%20realic%C3%A9%20mi%20transferencia%20para%20Rey%20Taco%20Picks%20VIP.%20Mi%20correo%20es:%20" target="_blank" class="whatsapp-btn">
+            <a id="whatsapp-spei-btn" href="https://wa.me/525639331102?text=Hola%20Carlos,%20ya%20realic%C3%A9%20mi%20transferencia%20para%20Rey%20Taco%20Picks%20VIP.%20Mi%20correo%20es:%20" target="_blank" class="whatsapp-btn">
               📲 Enviar Comprobante por WhatsApp
             </a>
           </div>

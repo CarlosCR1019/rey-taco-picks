@@ -163,20 +163,75 @@ def main():
                 # Si es una foto, procesarla
                 if 'photo' in message:
                     procesar_foto(update)
-                
-                # Comandos de texto
                 elif 'text' in message:
-                    texto = message['text'].lower().strip()
+                    # Comandos de texto
+                    raw_text = message.get('text', '').strip()
+                    texto = raw_text.lower()
                     chat_id = message['chat']['id']
                     
                     if texto == '/start':
                         responder(chat_id, 
-                            "👑 ¡Bienvenido a Rey Taco Picks!\n\n"
-                            "📸 Envíame fotos de tickets ganadores y las publicaré automáticamente.\n\n"
-                            "Comandos:\n"
-                            "/tickets - Ver cuántos tickets guardados\n"
-                            "/start - Este mensaje"
+                            "👑 ¡Bienvenido a Rey Taco Picks Bot!\n\n"
+                            "📸 Envíame fotos de tickets ganadores y las publicaré en el canal y en la web.\n\n"
+                            "👑 COMANDOS DE ADMINISTRADOR:\n"
+                            "• /vip correo@ejemplo.com ➔ Activa el VIP a un cliente en Supabase\n"
+                            "• /quitarvip correo@ejemplo.com ➔ Revoca el VIP\n"
+                            "• /usuarios ➔ Ver lista de clientes registrados\n"
+                            "• /tickets ➔ Ver cuántos tickets hay guardados"
                         )
+                    elif texto.startswith('/vip ') or (texto.startswith('vip ') and '@' in texto):
+                        partes = raw_text.split()
+                        if len(partes) >= 2:
+                            target_email = partes[1].strip()
+                            if supabase:
+                                try:
+                                    # Update profile is_premium
+                                    res = supabase.table("profiles").update({"is_premium": True}).eq("email", target_email).execute()
+                                    if res.data and len(res.data) > 0:
+                                        responder(chat_id, f"✅ ¡ACCESO VIP ACTIVADO!\n\nEl correo {target_email} ahora tiene acceso completo a todos los picks en la web.")
+                                    else:
+                                        # Si no existe en profiles, intentar crearlo
+                                        import uuid
+                                        supabase.table("profiles").insert({"id": str(uuid.uuid4()), "email": target_email, "is_premium": True}).execute()
+                                        responder(chat_id, f"✅ ¡ACCESO VIP ACTIVADO!\n\nSe creó el registro y se activó VIP para {target_email}.")
+                                    print(f"   👑 VIP activado para: {target_email}")
+                                except Exception as e:
+                                    responder(chat_id, f"⚠️ Error al actualizar Supabase: {e}")
+                            else:
+                                responder(chat_id, "❌ Error: No hay conexión a Supabase.")
+                        else:
+                            responder(chat_id, "Uso: /vip correo@ejemplo.com")
+
+                    elif texto.startswith('/quitarvip '):
+                        partes = raw_text.split()
+                        if len(partes) >= 2:
+                            target_email = partes[1].strip()
+                            if supabase:
+                                try:
+                                    supabase.table("profiles").update({"is_premium": False}).eq("email", target_email).execute()
+                                    responder(chat_id, f"🚫 Acceso VIP revocado para {target_email}.")
+                                except Exception as e:
+                                    responder(chat_id, f"⚠️ Error: {e}")
+                            else:
+                                responder(chat_id, "❌ Error: Sin conexión a Supabase.")
+
+                    elif texto == '/usuarios':
+                        if supabase:
+                            try:
+                                res = supabase.table("profiles").select("email, is_premium").limit(20).execute()
+                                if res.data:
+                                    msg_users = "📋 USUARIOS REGISTRADOS:\n\n"
+                                    for u in res.data:
+                                        vip_icon = "👑 VIP" if u.get('is_premium') else "⚪ Free"
+                                        msg_users += f"• {u.get('email', 'Sin correo')} ➔ {vip_icon}\n"
+                                    responder(chat_id, msg_users)
+                                else:
+                                    responder(chat_id, "No hay usuarios registrados aún.")
+                            except Exception as e:
+                                responder(chat_id, f"Error consultando usuarios: {e}")
+                        else:
+                            responder(chat_id, "Sin conexión a Supabase.")
+
                     elif texto == '/tickets':
                         archivos = os.listdir(TICKETS_DIR)
                         fotos = [f for f in archivos if f.endswith(('.jpg', '.png', '.jpeg'))]
