@@ -175,14 +175,37 @@ def click_category(driver, category):
     return driver.execute_script(script)
 
 def extract_events_from_page(driver):
-    """Extrae los eventos visibles de la página actual del Shadow DOM."""
+    """Extrae los eventos visibles de la página actual del Shadow DOM filtrando estrictamente hoy y mañana."""
     script = get_shadow_script() + """
     var shadow = getShadow();
     if(!shadow) return [];
     var containers = shadow.querySelectorAll('div[class*="EventBoxContainer"]');
     var result = [];
+    
+    // Obtener días actuales para filtrar fechas lejanas
+    var hoy = new Date();
+    var diaHoy = hoy.getDate();
+    var diaManana = (new Date(hoy.getTime() + 24*60*60*1000)).getDate();
+    var diaPasado = (new Date(hoy.getTime() + 48*60*60*1000)).getDate();
+    var diasValidos = [diaHoy, diaManana, diaPasado];
+
     containers.forEach(c => {
         try {
+            var fullText = c.innerText.toLowerCase();
+            
+            // Si el contenedor o su sección indica fechas lejanas (más de 2 días), descartar
+            var esFuturoLejano = false;
+            // Buscar patrones como '22 ago', '25 ago', 'sep', etc.
+            var matchFecha = fullText.match(/(\d{1,2})\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);
+            if (matchFecha) {
+                var diaNum = parseInt(matchFecha[1]);
+                if (!diasValidos.includes(diaNum)) {
+                    esFuturoLejano = true;
+                }
+            }
+
+            if (esFuturoLejano) return;
+
             var names = c.querySelectorAll('div[class*="CompetitorName-"]');
             var odds = c.querySelectorAll('button[class*="OddBoxButton-"]');
             if(names.length >= 2) {
@@ -205,7 +228,7 @@ def extract_events_from_page(driver):
     return driver.execute_script(script) or []
 
 def obtener_eventos_odds_api():
-    """Fallback inteligente: Si Playdoit no responde o está en mantenimiento, obtiene partidos y cuotas en vivo de The Odds API."""
+    """Fallback inteligente: Si Playdoit no responde o está en mantenimiento, obtiene partidos de HOY y MAÑANA de The Odds API."""
     if not ODDS_API_KEY:
         return []
     
@@ -213,17 +236,30 @@ def obtener_eventos_odds_api():
     sports = ['soccer_mexico_ligamx', 'baseball_mlb', 'soccer_spain_la_liga', 'soccer_usa_mls', 'soccer_epl']
     eventos_api = []
     
+    # Límites de tiempo: máximo 36 horas desde este instante
+    from datetime import datetime, timezone, timedelta
+    now_utc = datetime.now(timezone.utc)
+    max_time_utc = now_utc + timedelta(hours=36)
+    
     for s in sports:
         try:
             url = f"https://api.the-odds-api.com/v4/sports/{s}/odds/?apiKey={ODDS_API_KEY}&regions=us,eu&markets=h2h"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
-                for match in data[:8]:
+                for match in data:
+                    commence_str = match.get('commence_time')
+                    if commence_str:
+                        try:
+                            match_dt = datetime.fromisoformat(commence_str.replace('Z', '+00:00'))
+                            if match_dt > max_time_utc:
+                                continue # Descartar partidos de fechas lejanas
+                        except Exception:
+                            pass
+
                     home = match.get('home_team')
                     away = match.get('away_team')
                     cuotas = []
-                    # Obtener mejores cuotas de las casas
                     for bookmaker in match.get('bookmakers', []):
                         for market in bookmaker.get('markets', []):
                             if market.get('key') == 'h2h':
@@ -245,7 +281,7 @@ def obtener_eventos_odds_api():
         except Exception as e:
             print(f"   ⚠️ Error en {s}: {e}")
             
-    print(f"   ✅ {len(eventos_api)} partidos reales multideporte listos para análisis.")
+    print(f"   ✅ {len(eventos_api)} partidos reales de HOY/MAÑANA listos para análisis.")
     return eventos_api
 
 # ============================================================
@@ -253,7 +289,7 @@ def obtener_eventos_odds_api():
 # ============================================================
 def fase1_escaneo_superficie(driver):
     print("\n" + "="*60)
-    print("🕵️  FASE 1: ESCÁNER RADAR DE SUPERFICIE")
+    print("🕵️  FASE 1: ESCÁNER RADAR DE SUPERFICIE (Solo Hoy y Mañana)")
     print("="*60)
     
     partidos_data = []
@@ -285,7 +321,9 @@ def fase1_escaneo_superficie(driver):
         for cat in categorias:
             print(f"   Explorando: {cat}...", end=" ")
             if click_category(driver, cat):
-                time.sleep(3)
+                time.sleep(2)
+                click_tab_hoy(driver) # Asegurar que solo vemos Hoy al entrar a cada categoría
+                time.sleep(1)
                 eventos = extract_events_from_page(driver)
                 nuevos = 0
                 for e in eventos:
@@ -307,10 +345,10 @@ def fase1_escaneo_superficie(driver):
         print(f"   ⚠️ Nota en escáner Playdoit: {e}")
     
     if not partidos_data:
-        print("   ℹ️ Escáner de superficie Playdoit no detectó partidos activos. Activando satélite The Odds API...")
+        print("   ℹ️ Escáner de superficie Playdoit no detectó partidos activos de hoy. Activando satélite The Odds API...")
         partidos_data = obtener_eventos_odds_api()
         
-    print(f"\n   📊 Total eventos únicos para análisis: {len(partidos_data)}")
+    print(f"\n   📊 Total eventos únicos de HOY/MAÑANA para análisis: {len(partidos_data)}")
     return partidos_data
 
 # ============================================================
@@ -388,15 +426,19 @@ def fase3_filtro_inteligente(partidos_data):
     catalogo = [{"cat": p['categoria'], "partido": p['partido'], "cuotas": p.get('cuotas_superficie', [])} for p in partidos_data]
     
     prompt = f"""
-    Catálogo de {len(catalogo)} eventos deportivos de hoy. 
+    Catálogo de {len(catalogo)} eventos deportivos. 
+    REGLA CRÍTICA DE TIEMPO (CERO TOLERANCIA):
+    - Selecciona ÚNICAMENTE partidos que se jueguen HOY O MAÑANA a más tardar.
+    - PROHIBIDO rotundo elegir partidos de fechas futuras (próxima semana o meses siguientes).
+    
     Selecciona EXACTAMENTE 15 partidos con mayor potencial, asegurando MÁXIMA DIVERSIDAD DEPORTIVA:
-    - Obligatorio incluir partidos de MLB (Béisbol), NFL (Americano), Fútbol Internacional (Champions, La Liga, Premier, Libertadores) y Liga MX.
-    - NO elijas solo fútbol mexicano. Si hay tenis, boxeo, MMA o MLB, DEBES incluirlos.
+    - Incluir MLB (Béisbol de hoy), Fútbol Internacional (La Liga, Premier, Champions, Libertadores) y Liga MX que jueguen HOY o MAÑANA.
+    - Si no hay juegos de NFL hoy o mañana, NO selecciones NFL.
     
     {json.dumps(catalogo)}
     
     Devuelve SOLO un JSON array de strings con los nombres exactos de los partidos.
-    Ejemplo: ["New York Yankees vs Boston Red Sox", "Real Madrid vs Osasuna", "América vs Monterrey", "Kansas City Chiefs vs Detroit Lions"]
+    Ejemplo: ["New York Yankees vs Boston Red Sox", "Real Madrid vs Osasuna", "América vs Monterrey"]
     """
     
     try:
@@ -722,9 +764,10 @@ DEBATE DE LOS EXPERTOS:
 {market_context}
 
 ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON):
+0. REGLA TEMPORAL CRÍTICA: TODOS LOS PICKS DEBEN SER EXCLUSIVAMENTE PARA PARTIDOS PROGRAMADOS PARA HOY O MAÑANA A MÁS TARDAR. PROHIBIDO seleccionar partidos de la próxima semana.
 1. PICKS DE TIROS DE ESQUINA (Córners): SOLO PUEDEN SER DE PARTIDOS DE FÚTBOL (Liga MX, La Liga, Premier, Champions, etc.). Ejemplo: "Tigres vs Atlas | Más de 8.5 Córners". ¡NUNCA EN BÉISBOL!
 2. PICKS DE BÉISBOL (MLB): Deben usar "Carreras" (Runs), "Ponches" (Strikeouts), "Hits" o "Moneyline". Ejemplo: "Astros vs Mariners | Más de 8.5 Carreras" o "Más de 0.5 Carreras en 1er Inning". ¡NUNCA "GOLES" O "CÓRNERS"!
-3. PICKS DE FÚTBOL AMERICANO (NFL): Deben usar "Yardas", "Touchdowns", "Puntos" o "Spread".
+3. PICKS DE FÚTBOL AMERICANO (NFL): Deben usar "Yardas", "Touchdowns", "Puntos" o "Spread" (SOLO si el partido se juega HOY o MAÑANA; si no hay partidos de NFL hoy/mañana, NO incluyas NFL).
 4. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
    - Parlay 1 ("Parlay Seguro"): 2 selecciones de altísima probabilidad con cuota combinada 2.10 - 2.80. Marcar "es_parlay": true.
    - Parlay 2 ("Parlay Estadístico Córners/Props" o "Parlay Bomba"): 2-3 selecciones con cuota combinada 3.20 - 6.50. Marcar "es_parlay": true.
