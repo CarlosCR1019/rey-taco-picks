@@ -633,26 +633,30 @@ CUOTAS PROMEDIO DEL MERCADO GLOBAL (15+ casas de apuestas):
     print("   🤖 [IA 1: Alpha Quant] Analizando mercados profundos (Córners, Combos, Props, Totales)...")
     prompt_quant = f"""
 Eres "Alpha Quant", la IA líder en análisis cuantitativo y micro-estadísticas para apuestas deportivas de élite.
-Analiza los siguientes partidos y mercados especiales de Playdoit:
+Analiza los siguientes partidos y mercados especiales:
 
 {memoria}
 {market_context}
-DATOS DE PARTIDOS Y MERCADOS PROFUNDOS:
+DATOS DE PARTIDOS Y MERCADOS:
 {datos_partidos_str}
 
-REGLAS DE SELECCIÓN CUANTITATIVA:
-1. PROHIBIDO LIMITARSE A MONEYLINE (GANA DIRECTO): Los apostadores profesionales buscan ventaja en:
-   - TIROS DE ESQUINA (Córners): Over/Under de tiros de esquina (ej. "Más de 8.5 Córners"), Hándicap de Córners.
-   - COMBINADOS DOBLES (Bet Builder): ej. "Gana o Empata (1X) y Más de 1.5 Goles", "Ambos Anotan y Más de 7.5 Córners".
-   - TOTALES (Over/Under de Goles o Carreras en MLB).
-   - HÁNDICAPS ASIÁTICOS / SPREAD.
-   - PLAYER PROPS (MLB Ponches, NFL Yardas, Disparos a Puerta).
-2. PARLAYS ESTRATÉGICOS: Arma 2 o 3 propuestas de Parlays estructurados:
-   - "Parlay Seguro": 2 selecciones de probabilidad >85% (cuota 2.10 - 2.80).
-   - "Parlay Estadístico (Córners / Props)": 2 selecciones de micro-estadísticas (cuota 2.70 - 3.80).
-   - "Parlay Rompe-Bancas (+EV)": 3 selecciones de alto valor combinado (cuota 4.50 - 7.50).
+REGLAS ESTRICTAS DE TAXONOMÍA DEPORTIVA (CERO TOLERANCIA A ERRORES):
+1. FÚTBOL (Soccer / Liga MX / La Liga / Champions / Premier):
+   - Mercados válidos: Tiros de Esquina (Córners ej. "Más de 8.5 Córners"), Ambos Anotan (BTTS), Over/Under Goles (ej. "Más de 2.5 Goles"), 1X2 / Doble Oportunidad, Hándicap Asiático, Tarjetas.
+   - NUNCA uses términos de béisbol o americano en fútbol.
+2. BÉISBOL (MLB):
+   - Mercados válidos: Over/Under Carreras (ej. "Más de 8.5 Carreras"), Carreras en 1er Inning (ej. "Sin Carreras en el 1er Inning - NRFI" o "Más de 0.5 Carreras 1er Inning"), Ponches del Pitcher (ej. "Más de 6.5 Ponches"), Moneyline (-1.5 Run Line).
+   - ¡PROHIBIDO ROTUNDAMENTE usar "Córners", "Goles" o "Tiros de esquina" en Béisbol! En béisbol son CARRERAS, HITS y PONCHES.
+3. FÚTBOL AMERICANO (NFL):
+   - Mercados válidos: Spread / Hándicap (ej. "-3.5"), Over/Under Puntos Totales (ej. "Más de 44.5 Puntos"), Player Props (ej. "Anotador de Touchdown", "Más de 75.5 Yardas").
+   - ¡PROHIBIDO usar "Goles" o "Córners" en NFL! En americano son PUNTOS, TOUCHDOWNS y YARDAS.
 
-Devuelve tu catálogo cuantitativo con las justificaciones matemáticas.
+REGLAS DE PARLAYS ESTRATÉGICOS:
+- "Parlay Seguro": 2 selecciones de altísima probabilidad con cuota combinada 2.10 - 2.80.
+- "Parlay Estadístico Córners/Props": 2 selecciones de micro-estadísticas (Córners de fútbol o Ponches/Carreras de MLB) cuota 2.70 - 3.80.
+- "Parlay Rompe-Bancas (+EV)": 3 selecciones de alto valor combinado (cuota 4.50 - 7.50).
+
+Devuelve tu catálogo cuantitativo con las justificaciones matemáticas respetando estrictamente la terminología de cada deporte.
 """
     try:
         resp_quant = client.chat.completions.create(
@@ -681,9 +685,10 @@ DATOS REALES:
 {datos_partidos_str}
 
 TAREA DE AUDITORÍA:
-1. Evalúa si las líneas de Tiros de Esquina, Totales y Combos son realistas según el estilo de juego de los equipos (posesión, extremos, defensas cerradas).
-2. Audita los Parlays: Asegúrate de que las selecciones combinadas tengan correlación positiva o bajo riesgo de cruzarse.
-3. Si un pick o combinación es arriesgado, sugiere un ajuste más inteligente (ej. bajar la línea de Córners de 9.5 a 8.5, o cambiar a Doble Oportunidad).
+1. Verifica que la taxonomía deportiva sea 100% precisa (Córners y Goles SOLO en Fútbol; Carreras y Ponches SOLO en Béisbol; Puntos y Yardas SOLO en NFL). Rechaza cualquier propuesta que confunda deportes.
+2. Evalúa si las líneas de Tiros de Esquina, Totales y Combos son realistas según el estilo de juego de los equipos.
+3. Audita los Parlays: Asegúrate de que las selecciones combinadas tengan correlación positiva o bajo riesgo de cruzarse.
+4. Si un pick o combinación es arriesgado, sugiere un ajuste más inteligente.
 
 Devuelve tu dictamen de aprobación y ajustes recomendados.
 """
@@ -717,13 +722,14 @@ DEBATE DE LOS EXPERTOS:
 {market_context}
 
 ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON):
-1. DEBE HABER AL MENOS 1 O 2 PICKS DE TIROS DE ESQUINA (Córners) (ej. "Más de 8.5 Córners").
-2. DEBE HABER AL MENOS 1 O 2 COMBINADOS / TOTALES (ej. "1X y Más de 1.5 Goles", "Over 8.5 Carreras MLB").
-3. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
+1. PICKS DE TIROS DE ESQUINA (Córners): SOLO PUEDEN SER DE PARTIDOS DE FÚTBOL (Liga MX, La Liga, Premier, Champions, etc.). Ejemplo: "Tigres vs Atlas | Más de 8.5 Córners". ¡NUNCA EN BÉISBOL!
+2. PICKS DE BÉISBOL (MLB): Deben usar "Carreras" (Runs), "Ponches" (Strikeouts), "Hits" o "Moneyline". Ejemplo: "Astros vs Mariners | Más de 8.5 Carreras" o "Más de 0.5 Carreras en 1er Inning". ¡NUNCA "GOLES" O "CÓRNERS"!
+3. PICKS DE FÚTBOL AMERICANO (NFL): Deben usar "Yardas", "Touchdowns", "Puntos" o "Spread".
+4. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
    - Parlay 1 ("Parlay Seguro"): 2 selecciones de altísima probabilidad con cuota combinada 2.10 - 2.80. Marcar "es_parlay": true.
    - Parlay 2 ("Parlay Estadístico Córners/Props" o "Parlay Bomba"): 2-3 selecciones con cuota combinada 3.20 - 6.50. Marcar "es_parlay": true.
-4. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.30, 3.40).
-5. "categoria": "Tiros de Esquina", "Fútbol", "Béisbol", "Parlay Seguro", "Parlay Bomba", etc.
+5. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.30, 3.40).
+6. "categoria": "Tiros de Esquina" (SOLO fútbol), "Fútbol", "Béisbol", "Fútbol Americano", "Parlay Seguro", "Parlay Bomba", etc.
 
 Devuelve ÚNICAMENTE un JSON array válido con este formato:
 [
@@ -739,9 +745,20 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
         "odds_mercado": "1.78"
     }},
     {{
+        "categoria": "Béisbol",
+        "partido": "Houston Astros vs Seattle Mariners",
+        "pick": "Más de 8.5 Carreras Totales",
+        "cuota": "1.90",
+        "confianza": "85%",
+        "razonamiento": "Condiciones de bateo favorables y efectividad alta de los relevistas.",
+        "es_parlay": false,
+        "tiene_valor": true,
+        "odds_mercado": "1.85"
+    }},
+    {{
         "categoria": "Parlay Seguro",
         "partido": "América + NY Yankees",
-        "pick": "América 1X y +1.5 Goles & Yankees Over 7.5 Carreras",
+        "pick": "América Gana o Empata & Yankees Gana Directo",
         "cuota": "2.45",
         "confianza": "93%",
         "razonamiento": "Combinada de alta probabilidad aprobada por ambos analistas.",
