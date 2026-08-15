@@ -877,44 +877,57 @@ def _enviar_telegram(picks):
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
-        if not token or not chat_id:
+        vip_channel_id = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
+        free_channel_id = os.getenv("TELEGRAM_FREE_CHANNEL_ID")
+        
+        if not token:
             return
 
-        # 1. Enviar el reporte COMPLETO con todos los picks a Carlos inmediatamente
-        mensaje_admin = "👑 REY TACO PICKS (CARTERA COMPLETA) 👑\n\n"
+        # 1. Enviar el reporte COMPLETO con todos los picks a Carlos (Privado)
+        mensaje_completo = "👑 REY TACO PICKS VIP (CARTERA COMPLETA) 👑\n\n"
         for p in picks:
-            valor = " 💎VALOR" if p.get('tiene_valor') else ""
+            valor = " 💎VALOR +EV" if p.get('tiene_valor') else ""
             parlay = "🔗 PARLAY: " if p.get('es_parlay') else ""
-            mensaje_admin += f"{parlay}{p.get('categoria', '')}\n"
-            mensaje_admin += f"  {p.get('partido', '')}\n"
-            mensaje_admin += f"  Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
-            mensaje_admin += f"  Confianza: {p.get('confianza', '')}\n\n"
+            mensaje_completo += f"{parlay}{p.get('categoria', '')}\n"
+            mensaje_completo += f"  {p.get('partido', '')}\n"
+            mensaje_completo += f"  Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
+            mensaje_completo += f"  Confianza: {p.get('confianza', '')}\n\n"
         
-        mensaje_admin += "Revisa la web para el análisis completo: https://rey-taco-picks-web.onrender.com"
+        mensaje_completo += "🌐 Cartera completa en vivo: https://rey-taco-picks-web.onrender.com"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
-        data = json.dumps({"chat_id": chat_id, "text": mensaje_admin}).encode('utf-8')
-        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req) as resp:
-            if resp.getcode() == 200:
-                print("   📱 ✅ Telegram (privado completo) enviado a Carlos.")
 
-        # 2. Programación espaciada para el CANAL PÚBLICO
-        if channel_id and picks:
-            # A) Enviar inmediatamente el Pick #1 (Pick Estrella Gratuito)
+        # Envío a Carlos
+        if chat_id:
+            data = json.dumps({"chat_id": chat_id, "text": mensaje_completo}).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req) as resp:
+                if resp.getcode() == 200:
+                    print("   📱 ✅ Telegram (privado Carlos) enviado.")
+
+        # 2. Envío INMEDIATO al CANAL VIP
+        if vip_channel_id:
+            data_vip = json.dumps({"chat_id": vip_channel_id, "text": mensaje_completo}).encode('utf-8')
+            req_vip = urllib.request.Request(url, data=data_vip, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req_vip) as resp_vip:
+                if resp_vip.getcode() == 200:
+                    print("   👑 ✅ Telegram (Canal VIP) enviado con cartera completa.")
+
+        # 3. Envío al CANAL FREE (Pick Estrella Inmediato + Cola Espaciada)
+        if free_channel_id and picks:
+            # A) Pick #1 Gratuito
             pick_1_msg = formatear_pick_canal(picks[0], numero=1, total=len(picks))
-            data_ch = json.dumps({"chat_id": channel_id, "text": pick_1_msg}).encode('utf-8')
-            req_ch = urllib.request.Request(url, data=data_ch, headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req_ch) as resp_ch:
-                if resp_ch.getcode() == 200:
-                    print(f"   📢 ✅ Telegram (canal - Pick #1 inmediato) enviado: {picks[0].get('partido')}")
+            data_free = json.dumps({"chat_id": free_channel_id, "text": pick_1_msg}).encode('utf-8')
+            req_free = urllib.request.Request(url, data=data_free, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req_free) as resp_free:
+                if resp_free.getcode() == 200:
+                    print(f"   📢 ✅ Telegram (Canal FREE - Pick #1) enviado: {picks[0].get('partido')}")
 
-            # B) Programar los picks restantes espaciados cada 75-90 minutos
+            # B) Programar los picks restantes espaciados cada 75 min para el Canal Free
             queue_file = os.path.join(os.path.dirname(__file__), "channel_queue.json")
             queue = []
             now = time.time()
-            intervalo_segundos = 75 * 60 # 1 hora y 15 minutos entre cada pick
+            intervalo_segundos = 75 * 60
             
             for i, p in enumerate(picks[1:], 2):
                 prog_time = now + ((i - 1) * intervalo_segundos)
@@ -929,7 +942,7 @@ def _enviar_telegram(picks):
                 
             with open(queue_file, "w", encoding="utf-8") as f:
                 json.dump(queue, f, indent=2, ensure_ascii=False)
-            print(f"   ⏳ {len(queue)} picks restantes programados en cola para publicarse cada 75 min a lo largo del día.")
+            print(f"   ⏳ {len(queue)} picks programados en cola para publicarse espaciados en Canal FREE.")
 
     except Exception as e:
         print(f"   📱 ❌ Error Telegram: {e}")
