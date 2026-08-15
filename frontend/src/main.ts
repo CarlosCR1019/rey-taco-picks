@@ -585,7 +585,10 @@ function renderPicks(picks: any[]) {
         
         <div class="card-content ${isLocked ? 'blurred' : ''}">
           <div class="card-header">
-            <span class="sport-tag ${sportClass}">${pick.categoria || pick.deporte || 'Mercado'}</span>
+            <div class="card-header-left">
+              <span class="sport-tag ${sportClass}">${pick.categoria || pick.deporte || 'Mercado'}</span>
+              ${pick.horario || pick.hora_partido || pick.fecha_generacion ? `<span class="time-tag">🕒 ${pick.horario || pick.hora_partido || (pick.fecha_generacion === new Date().toISOString().split('T')[0] ? 'Hoy' : pick.fecha_generacion)}</span>` : ''}
+            </div>
             ${pick.tiene_valor ? '<span class="value-badge">VALOR DETECTADO</span>' : ''}
           </div>
           

@@ -175,7 +175,7 @@ def click_category(driver, category):
     return driver.execute_script(script)
 
 def extract_events_from_page(driver):
-    """Extrae los eventos visibles de la página actual del Shadow DOM filtrando estrictamente hoy y mañana."""
+    """Extrae los eventos visibles de la página actual del Shadow DOM filtrando estrictamente hoy y mañana con su horario."""
     script = get_shadow_script() + """
     var shadow = getShadow();
     if(!shadow) return [];
@@ -195,7 +195,6 @@ def extract_events_from_page(driver):
             
             // Si el contenedor o su sección indica fechas lejanas (más de 2 días), descartar
             var esFuturoLejano = false;
-            // Buscar patrones como '22 ago', '25 ago', 'sep', etc.
             var matchFecha = fullText.match(/(\d{1,2})\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);
             if (matchFecha) {
                 var diaNum = parseInt(matchFecha[1]);
@@ -205,6 +204,20 @@ def extract_events_from_page(driver):
             }
 
             if (esFuturoLejano) return;
+
+            // Extraer hora/fecha del partido
+            var timeEl = c.querySelector('div[class*="EventTime-"], div[class*="Time-"], span[class*="Time-"], div[class*="LiveIndicator"]');
+            var horarioStr = "Hoy";
+            if (timeEl && timeEl.innerText.trim()) {
+                horarioStr = timeEl.innerText.trim();
+            } else if (fullText.includes("en vivo") || fullText.includes("live")) {
+                horarioStr = "En Vivo 🔴";
+            } else {
+                var matchHora = c.innerText.match(/(\d{1,2}:\d{2})/);
+                if (matchHora) {
+                    horarioStr = "Hoy " + matchHora[1] + " hrs";
+                }
+            }
 
             var names = c.querySelectorAll('div[class*="CompetitorName-"]');
             var odds = c.querySelectorAll('button[class*="OddBoxButton-"]');
@@ -218,6 +231,7 @@ def extract_events_from_page(driver):
                     local: names[0].innerText.trim(),
                     visitante: names[1].innerText.trim(),
                     cuotas: oddsData,
+                    horario: horarioStr,
                     texto: c.innerText
                 });
             }
@@ -228,7 +242,7 @@ def extract_events_from_page(driver):
     return driver.execute_script(script) or []
 
 def obtener_eventos_odds_api():
-    """Fallback inteligente: Si Playdoit no responde o está en mantenimiento, obtiene partidos de HOY y MAÑANA de The Odds API."""
+    """Fallback inteligente: Si Playdoit no responde o está en mantenimiento, obtiene partidos de HOY y MAÑANA de The Odds API con fecha/hora CDMX."""
     if not ODDS_API_KEY:
         return []
     
@@ -249,13 +263,24 @@ def obtener_eventos_odds_api():
                 data = json.loads(resp.read().decode())
                 for match in data:
                     commence_str = match.get('commence_time')
+                    horario_str = "Hoy"
                     if commence_str:
                         try:
                             match_dt = datetime.fromisoformat(commence_str.replace('Z', '+00:00'))
                             if match_dt > max_time_utc:
                                 continue # Descartar partidos de fechas lejanas
+                            
+                            # Convertir a hora de México (UTC-6)
+                            cdmx_dt = match_dt - timedelta(hours=6)
+                            hoy_cdmx = (now_utc - timedelta(hours=6)).date()
+                            if cdmx_dt.date() == hoy_cdmx:
+                                horario_str = f"Hoy {cdmx_dt.strftime('%H:%M')} hrs"
+                            elif cdmx_dt.date() == hoy_cdmx + timedelta(days=1):
+                                horario_str = f"Mañana {cdmx_dt.strftime('%H:%M')} hrs"
+                            else:
+                                horario_str = cdmx_dt.strftime("%d/%m %H:%M hrs")
                         except Exception:
-                            pass
+                            horario_str = "Hoy"
 
                     home = match.get('home_team')
                     away = match.get('away_team')
@@ -275,8 +300,9 @@ def obtener_eventos_odds_api():
                             "partido": nombre,
                             "local": home,
                             "visitante": away,
+                            "horario": horario_str,
                             "cuotas_superficie": cuotas[:3] if cuotas else ["1.85", "3.20", "2.10"],
-                            "info_texto": f"{deporte_cat}: {home} vs {away}. Cuotas mercado: {', '.join(cuotas) if cuotas else '1.85, 3.20'}"
+                            "info_texto": f"{deporte_cat}: {home} vs {away}. Horario: {horario_str}. Cuotas: {', '.join(cuotas) if cuotas else '1.85, 3.20'}"
                         })
         except Exception as e:
             print(f"   ⚠️ Error en {s}: {e}")
@@ -779,6 +805,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
     {{
         "categoria": "Tiros de Esquina",
         "partido": "Tigres UANL vs Atlas",
+        "horario": "Hoy 19:00 hrs",
         "pick": "Más de 8.5 Tiros de Esquina",
         "cuota": "1.85",
         "confianza": "90%",
@@ -790,6 +817,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
     {{
         "categoria": "Béisbol",
         "partido": "Houston Astros vs Seattle Mariners",
+        "horario": "Hoy 18:10 hrs",
         "pick": "Más de 8.5 Carreras Totales",
         "cuota": "1.90",
         "confianza": "85%",
@@ -801,6 +829,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
     {{
         "categoria": "Parlay Seguro",
         "partido": "América + NY Yankees",
+        "horario": "Hoy 19:00 hrs / 18:05 hrs",
         "pick": "América Gana o Empata & Yankees Gana Directo",
         "cuota": "2.45",
         "confianza": "93%",
@@ -829,7 +858,8 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
         for p in picks:
             valor = " 💎 VALOR" if p.get('tiene_valor') else ""
             parlay = " 🔗 PARLAY" if p.get('es_parlay') else ""
-            print(f"      → [{p.get('categoria')}] {p.get('partido')} | {p.get('pick')} @ {p.get('cuota')}{valor}{parlay}")
+            horario = f" [{p.get('horario')}]" if p.get('horario') else ""
+            print(f"      → [{p.get('categoria')}]{horario} {p.get('partido')} | {p.get('pick')} @ {p.get('cuota')}{valor}{parlay}")
         
         return picks
     except Exception as e:
@@ -860,8 +890,6 @@ def fase7_guardar_y_notificar(picks):
             pick['ganancia_simulada'] = 0
     
     if supabase:
-        # NO borramos los viejos - los preservamos para historial
-        # Solo marcamos los de hoy como los actuales
         try:
             print(f"   💾 Subiendo {len(picks)} picks frescos a Supabase...")
             supabase.table("picks").insert(picks).execute()
@@ -892,6 +920,7 @@ def formatear_pick_canal(p, numero=1, total=1):
     confianza = p.get('confianza', '')
     razonamiento = p.get('razonamiento', '')
     odds_mkt = f" (Mercado: {p.get('odds_mercado')})" if p.get('odds_mercado') else ""
+    horario_str = f"🕒 Horario: {p.get('horario', 'Hoy')}\n" if p.get('horario') else "🕒 Horario: Hoy (CDMX)\n"
     
     if es_parlay:
         header = f"👑 REY TACO PICKS 👑\n🔗 COMBINADA / PARLAY DESTACADO [{numero}/{total}]"
@@ -906,6 +935,7 @@ def formatear_pick_canal(p, numero=1, total=1):
         
     msg = f"{header}\n\n"
     msg += f"🏟️ Evento: {partido}\n"
+    msg += horario_str
     msg += f"🎯 Selección: {pick_text}\n"
     msg += f"📊 Cuota: {cuota}{odds_mkt}{valor}\n"
     msg += f"🔥 Confianza: {confianza}\n\n"
@@ -931,8 +961,10 @@ def _enviar_telegram(picks):
         for p in picks:
             valor = " 💎VALOR +EV" if p.get('tiene_valor') else ""
             parlay = "🔗 PARLAY: " if p.get('es_parlay') else ""
+            horario = f"  🕒 {p.get('horario', 'Hoy')}\n" if p.get('horario') else ""
             mensaje_completo += f"{parlay}{p.get('categoria', '')}\n"
             mensaje_completo += f"  {p.get('partido', '')}\n"
+            mensaje_completo += horario
             mensaje_completo += f"  Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
             mensaje_completo += f"  Confianza: {p.get('confianza', '')}\n\n"
         
