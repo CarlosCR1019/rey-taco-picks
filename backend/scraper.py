@@ -306,11 +306,11 @@ def fase3_filtro_inteligente(partidos_data):
         return [p['partido'] for p in partidos_data[:15]]
 
 # ============================================================
-#  FASE 4: INMERSIÓN QUIRÚRGICA (Entrar a cada partido)
+#  FASE 4: INMERSIÓN QUIRÚRGICA (Tiros de Esquina, Remates, Hándicaps)
 # ============================================================
 def fase4_inmersion(driver, objetivos, partidos_data):
     print("\n" + "="*60)
-    print("🎯  FASE 4: INMERSIÓN QUIRÚRGICA (Mercados Profundos)")
+    print("🎯  FASE 4: INMERSIÓN QUIRÚRGICA (Córners, Remates, Hándicaps)")
     print("="*60)
     
     datos_profundos = []
@@ -325,18 +325,25 @@ def fase4_inmersion(driver, objetivos, partidos_data):
         driver.get("https://www.playdoit.mx/es/")
         time.sleep(5)
         click_tab_hoy(driver)
+        click_decimal_toggle(driver)
         
         # Clic en categoría
         click_category(driver, base['categoria'])
         time.sleep(3)
         
-        # Clic en el partido específico
+        # Clic en el partido específico dentro del Shadow DOM
         script_click = f"""
         try {{
-            var shadow = document.querySelector('div#altenar > div').shadowRoot;
-            var names = shadow.querySelectorAll('div[class*="CompetitorName-"]');
-            var match = Array.from(names).find(n => n.innerText.includes("{base['local']}"));
-            if(match) {{ match.click(); return true; }}
+            var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
+            if (!host) return false;
+            var shadow = host.shadowRoot;
+            var names = shadow.querySelectorAll('div[class*="CompetitorName-"], [class*="CompetitorsContainer"]');
+            var match = Array.from(names).find(n => n.innerText && n.innerText.toLowerCase().includes("{base['local'].lower()}"));
+            if(match) {{ 
+                match.click(); 
+                if (match.parentElement) match.parentElement.click();
+                return true; 
+            }}
             return false;
         }} catch(e) {{ return false; }}
         """
@@ -344,24 +351,54 @@ def fase4_inmersion(driver, objetivos, partidos_data):
         if driver.execute_script(script_click):
             time.sleep(4)
             
-            # Extraer todo el contenido profundo
-            script_deep = """
+            # Extraer mercados quirúrgicos (Córners, Remates, Hándicaps, Totales)
+            script_extract_markets = """
             try {
-                var shadow = document.querySelector('div#altenar > div').shadowRoot;
-                return shadow.innerText || "";
+                var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
+                if (!host) return "";
+                var shadow = host.shadowRoot;
+                
+                var marketBoxes = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="EventDetailsMarketBoxContainer"]'));
+                if (marketBoxes.length === 0) {
+                    return shadow.innerText || "";
+                }
+                
+                var marketSummary = [];
+                marketBoxes.forEach(function(box) {
+                    var nameEl = box.querySelector('[class*="EventDetailsMarketName"], [class*="MarketName"]');
+                    var marketName = nameEl ? nameEl.innerText.trim() : "";
+                    if (!marketName) return;
+                    
+                    var oddButtons = Array.from(box.querySelectorAll('button, [class*="OddBoxButton"]'));
+                    var oddsList = oddButtons.map(function(btn) {
+                        return btn.innerText.replace(/\\n+/g, ' ').trim();
+                    }).filter(Boolean);
+                    
+                    if (oddsList.length > 0) {
+                        marketSummary.push("▶ MERCADO [" + marketName + "]: " + oddsList.join(" | "));
+                    }
+                });
+                
+                return marketSummary.join("\\n");
             } catch(e) { return ""; }
             """
-            texto = driver.execute_script(script_deep) or ""
+            
+            mercados_texto = driver.execute_script(script_extract_markets) or ""
+            if not mercados_texto:
+                # Fallback a innerText general
+                script_deep = "try { var h = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot); return h.shadowRoot.innerText || ''; } catch(e) { return ''; }"
+                mercados_texto = driver.execute_script(script_deep) or ""
             
             datos_profundos.append({
                 "categoria": base['categoria'],
                 "partido": obj,
                 "cuotas_superficie": base.get('cuotas_superficie', []),
-                "mercados_profundos": texto[:5000]
+                "mercados_profundos": mercados_texto[:6000]
             })
-            print(f"      ✅ {len(texto[:5000])} caracteres de mercados extraídos.")
+            print(f"      ✅ {len(mercados_texto[:6000])} caracteres de mercados (Córners, Remates, Hándicap) extraídos.")
         else:
-            print(f"      ⚠️ No se pudo entrar al partido.")
+            print(f"      ⚠️ No se pudo entrar al partido, usando cuotas de superficie.")
+            datos_profundos.append(base)
     
     print(f"\n   📊 Inmersión completada: {len(datos_profundos)} partidos analizados a fondo.")
     return datos_profundos
