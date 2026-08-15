@@ -306,11 +306,11 @@ def fase3_filtro_inteligente(partidos_data):
         return [p['partido'] for p in partidos_data[:15]]
 
 # ============================================================
-#  FASE 4: INMERSIÓN QUIRÚRGICA (Tiros de Esquina, Remates, Hándicaps)
+#  FASE 4: INMERSIÓN QUIRÚRGICA (Insights, Córners, Crear Apuesta)
 # ============================================================
 def fase4_inmersion(driver, objetivos, partidos_data):
     print("\n" + "="*60)
-    print("🎯  FASE 4: INMERSIÓN QUIRÚRGICA (Córners, Remates, Hándicaps)")
+    print("🎯  FASE 4: INMERSIÓN QUIRÚRGICA (Insights + Mercados Profundos)")
     print("="*60)
     
     datos_profundos = []
@@ -351,19 +351,64 @@ def fase4_inmersion(driver, objetivos, partidos_data):
         if driver.execute_script(script_click):
             time.sleep(4)
             
-            # Extraer mercados quirúrgicos (Córners, Remates, Hándicaps, Totales)
-            script_extract_markets = """
+            # PASO A: Extraer Pestaña 'Insights' (Rachas, Tendencias Estadísticas y Desajustes)
+            script_extract_insights = """
             try {
                 var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
                 if (!host) return "";
                 var shadow = host.shadowRoot;
                 
-                var marketBoxes = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="EventDetailsMarketBoxContainer"]'));
-                if (marketBoxes.length === 0) {
-                    return shadow.innerText || "";
+                // Clic en pestaña 'Insights' si existe
+                var insightsBtn = Array.from(shadow.querySelectorAll('button, [role="tab"]')).find(function(b) {
+                    return b.innerText && b.innerText.trim().toLowerCase() === 'insights';
+                });
+                
+                if (insightsBtn) {
+                    insightsBtn.click();
                 }
                 
+                var cards = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="MarketBoxContainer"] > div'));
+                var insightsList = [];
+                
+                cards.forEach(function(card) {
+                    var textEls = Array.from(card.querySelectorAll('div, p, span')).filter(function(el) {
+                        var txt = el.innerText ? el.innerText.trim() : '';
+                        return (txt.includes('últimos') || txt.includes('partidos') || txt.includes('concedido') || txt.includes('ganado') || txt.includes('perdido') || txt.includes('convertido')) && el.children.length === 0;
+                    });
+                    
+                    var buttons = Array.from(card.querySelectorAll('button')).map(function(b) {
+                        return b.innerText.trim().replace(/\\n+/g, ' ');
+                    });
+                    
+                    if (textEls.length > 0 && buttons.length > 0) {
+                        insightsList.push("💡 TENDENCIA INSIGHT: " + textEls.map(function(t) { return t.innerText.trim(); }).join(" ") + " [Cuotas: " + buttons.join(" | ") + "]");
+                    }
+                });
+                
+                return insightsList.join("\\n");
+            } catch(e) { return ""; }
+            """
+            
+            insights_texto = driver.execute_script(script_extract_insights) or ""
+            if insights_texto:
+                print(f"      👁️ {len(insights_texto.splitlines())} Insights estadísticos y rachas capturadas.")
+            
+            # PASO B: Clic en 'Todas' o 'Crear Apuesta' para extraer mercados profundos
+            script_extract_deep_markets = """
+            try {
+                var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
+                if (!host) return "";
+                var shadow = host.shadowRoot;
+                
+                // Regresar a 'Todas' o 'Principal' para capturar Córners, Remates y Hándicaps
+                var todasBtn = Array.from(shadow.querySelectorAll('button, [role="tab"]')).find(function(b) {
+                    return b.innerText && (b.innerText.trim().toLowerCase() === 'todas' || b.innerText.trim().toLowerCase() === 'principal');
+                });
+                if (todasBtn) { todasBtn.click(); }
+                
+                var marketBoxes = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="EventDetailsMarketBoxContainer"]'));
                 var marketSummary = [];
+                
                 marketBoxes.forEach(function(box) {
                     var nameEl = box.querySelector('[class*="EventDetailsMarketName"], [class*="MarketName"]');
                     var marketName = nameEl ? nameEl.innerText.trim() : "";
@@ -383,19 +428,21 @@ def fase4_inmersion(driver, objetivos, partidos_data):
             } catch(e) { return ""; }
             """
             
-            mercados_texto = driver.execute_script(script_extract_markets) or ""
-            if not mercados_texto:
-                # Fallback a innerText general
-                script_deep = "try { var h = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot); return h.shadowRoot.innerText || ''; } catch(e) { return ''; }"
-                mercados_texto = driver.execute_script(script_deep) or ""
+            mercados_texto = driver.execute_script(script_extract_deep_markets) or ""
+            
+            contenido_completo = ""
+            if insights_texto:
+                contenido_completo += "--- TENDENCIAS INSIGHTS DE PLAYDOIT ---\n" + insights_texto + "\n\n"
+            if mercados_texto:
+                contenido_completo += "--- MERCADOS PROFUNDOS & CÓRNERS ---\n" + mercados_texto
             
             datos_profundos.append({
                 "categoria": base['categoria'],
                 "partido": obj,
                 "cuotas_superficie": base.get('cuotas_superficie', []),
-                "mercados_profundos": mercados_texto[:6000]
+                "mercados_profundos": contenido_completo[:7000]
             })
-            print(f"      ✅ {len(mercados_texto[:6000])} caracteres de mercados (Córners, Remates, Hándicap) extraídos.")
+            print(f"      ✅ {len(contenido_completo[:7000])} caracteres de Insights + Mercados extraídos.")
         else:
             print(f"      ⚠️ No se pudo entrar al partido, usando cuotas de superficie.")
             datos_profundos.append(base)
