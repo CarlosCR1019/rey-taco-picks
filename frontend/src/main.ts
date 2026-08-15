@@ -90,143 +90,376 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </section>
     </main>
 
-    <!-- Auth Modal -->
+    <!-- Auth & Subscription Modal -->
     <div id="auth-modal" class="modal-overlay hidden">
       <div class="modal-content">
         <button id="close-modal" class="close-btn">&times;</button>
-        <div class="modal-header">
-          <h2 id="modal-title">Iniciar Sesión</h2>
-          <p id="modal-subtitle">Accede a tus picks premium</p>
-        </div>
         
         <div class="auth-tabs">
-          <button id="tab-login" class="auth-tab active">Entrar</button>
-          <button id="tab-register" class="auth-tab">Registrarse</button>
+          <button id="tab-login" class="auth-tab active">🔑 Acceso</button>
+          <button id="tab-spei" class="auth-tab">💳 Pagar SPEI</button>
+          <button id="tab-code" class="auth-tab">🎟️ Código VIP</button>
         </div>
 
-        <form id="auth-form" class="auth-form">
-          <div class="form-group">
-            <label>Correo Electrónico</label>
-            <input type="email" id="auth-email" required placeholder="tu@correo.com" />
+        <!-- Panel 1: Login / Register -->
+        <div id="panel-login" class="auth-panel">
+          <div class="modal-header">
+            <h2 id="modal-title">Iniciar Sesión</h2>
+            <p id="modal-subtitle">Accede a tus picks premium y análisis IA</p>
           </div>
-          <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" id="auth-password" required placeholder="••••••••" minlength="6" />
+          
+          <div class="auth-subtabs">
+            <button id="subtab-login" class="subtab active">Entrar</button>
+            <button id="subtab-register" class="subtab">Crear Cuenta</button>
           </div>
-          <p id="auth-error" class="auth-error hidden"></p>
-          <button type="submit" id="auth-submit-btn" class="submit-btn">Entrar al Sistema</button>
-        </form>
+
+          <form id="auth-form" class="auth-form">
+            <div class="form-group">
+              <label>Correo Electrónico</label>
+              <input type="email" id="auth-email" required placeholder="carlosds1017@gmail.com" />
+            </div>
+            <div class="form-group">
+              <label>Contraseña</label>
+              <input type="password" id="auth-password" required placeholder="••••••••" minlength="6" />
+            </div>
+            <p id="auth-error" class="auth-error hidden"></p>
+            <p id="auth-success" class="auth-success hidden"></p>
+            <button type="submit" id="auth-submit-btn" class="submit-btn">Entrar al Sistema</button>
+          </form>
+        </div>
+
+        <!-- Panel 2: SPEI Transfer -->
+        <div id="panel-spei" class="auth-panel hidden">
+          <div class="modal-header">
+            <h2>💳 Pagar por Transferencia SPEI</h2>
+            <p>Acceso VIP instantáneo sin comisiones extras</p>
+          </div>
+          
+          <div class="spei-card">
+            <div class="spei-row">
+              <span class="spei-label">Banco:</span>
+              <strong class="spei-val">BBVA México</strong>
+            </div>
+            <div class="spei-row">
+              <span class="spei-label">Titular:</span>
+              <strong class="spei-val">Carlos Alberto Gutierrez Ramirez</strong>
+            </div>
+            <div class="spei-row">
+              <span class="spei-label">Cuenta CLABE:</span>
+              <div class="clabe-copy-box">
+                <code id="clabe-number">012180015228133759</code>
+                <button id="copy-clabe-btn" class="copy-btn" title="Copiar CLABE">📋 Copiar</button>
+              </div>
+            </div>
+            <div class="spei-row">
+              <span class="spei-label">Cuenta:</span>
+              <strong class="spei-val">152 281 3375</strong>
+            </div>
+            <div class="spei-row">
+              <span class="spei-label">Monto sugerido:</span>
+              <strong class="spei-val text-green">$299 MXN / Mes</strong>
+            </div>
+            <div class="spei-row">
+              <span class="spei-label">Concepto:</span>
+              <strong class="spei-val text-gold">Tu Nombre o Correo</strong>
+            </div>
+          </div>
+
+          <div class="spei-action">
+            <p class="spei-note">Una vez hecha tu transferencia, envíanos la captura para activarte de inmediato:</p>
+            <a id="whatsapp-spei-btn" href="https://wa.me/525546921238?text=Hola%20Carlos,%20ya%20realic%C3%A9%20mi%20transferencia%20para%20Rey%20Taco%20Picks%20VIP.%20Mi%20correo%20es:%20" target="_blank" class="whatsapp-btn">
+              📲 Enviar Comprobante por WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <!-- Panel 3: VIP Code Redemption -->
+        <div id="panel-code" class="auth-panel hidden">
+          <div class="modal-header">
+            <h2>🎟️ Canjear Código de Acceso VIP</h2>
+            <p>Si pagaste por transferencia y recibiste tu código, ingrésalo aquí</p>
+          </div>
+          
+          <form id="code-form" class="auth-form">
+            <div class="form-group">
+              <label>Código de Activación</label>
+              <input type="text" id="vip-code-input" required placeholder="Ej. TACOVIP2026" style="text-transform: uppercase; font-weight: bold; letter-spacing: 2px;" />
+            </div>
+            <p id="code-msg" class="auth-error hidden"></p>
+            <button type="submit" id="redeem-btn" class="submit-btn btn-gold">Activar Pase VIP</button>
+          </form>
+        </div>
+
       </div>
     </div>
   </div>
 `
 
 // State
+let currentUser: any = null;
 let isSubscribed = false;
 let isLoginMode = true;
+
+// Restore session from localStorage
+try {
+  const savedUser = localStorage.getItem('rey_taco_user');
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    if (currentUser.email === 'carlosds1017@gmail.com' || currentUser.is_premium) {
+      isSubscribed = true;
+    }
+  }
+} catch (e) {}
+
+// Admin auto-check: if currentUser is carlosds1017@gmail.com, grant full access
+if (currentUser?.email === 'carlosds1017@gmail.com') {
+  isSubscribed = true;
+}
 
 // Auth UI Logic
 const authModal = document.getElementById('auth-modal')!;
 const closeModalBtn = document.getElementById('close-modal')!;
 const loginBtn = document.getElementById('login-btn')!;
 const premiumBadge = document.querySelector('.premium-badge') as HTMLButtonElement;
+
 const tabLogin = document.getElementById('tab-login')!;
-const tabRegister = document.getElementById('tab-register')!;
+const tabSpei = document.getElementById('tab-spei')!;
+const tabCode = document.getElementById('tab-code')!;
+
+const panelLogin = document.getElementById('panel-login')!;
+const panelSpei = document.getElementById('panel-spei')!;
+const panelCode = document.getElementById('panel-code')!;
+
+const subtabLogin = document.getElementById('subtab-login')!;
+const subtabRegister = document.getElementById('subtab-register')!;
 const modalTitle = document.getElementById('modal-title')!;
 const modalSubtitle = document.getElementById('modal-subtitle')!;
 const authForm = document.getElementById('auth-form') as HTMLFormElement;
 const emailInput = document.getElementById('auth-email') as HTMLInputElement;
 const passwordInput = document.getElementById('auth-password') as HTMLInputElement;
 const errorMsg = document.getElementById('auth-error')!;
+const successMsg = document.getElementById('auth-success')!;
 const submitBtn = document.getElementById('auth-submit-btn') as HTMLButtonElement;
 
-function openModal(isLogin: boolean = true) {
-  isLoginMode = isLogin;
-  updateModalUI();
+const copyClabeBtn = document.getElementById('copy-clabe-btn')!;
+const codeForm = document.getElementById('code-form') as HTMLFormElement;
+const vipCodeInput = document.getElementById('vip-code-input') as HTMLInputElement;
+const codeMsg = document.getElementById('code-msg')!;
+
+function switchMainTab(tab: 'login' | 'spei' | 'code') {
+  [tabLogin, tabSpei, tabCode].forEach(t => t.classList.remove('active'));
+  [panelLogin, panelSpei, panelCode].forEach(p => p.classList.add('hidden'));
+
+  if (tab === 'login') {
+    tabLogin.classList.add('active');
+    panelLogin.classList.remove('hidden');
+  } else if (tab === 'spei') {
+    tabSpei.classList.add('active');
+    panelSpei.classList.remove('hidden');
+  } else if (tab === 'code') {
+    tabCode.classList.add('active');
+    panelCode.classList.remove('hidden');
+  }
+}
+
+tabLogin.addEventListener('click', () => switchMainTab('login'));
+tabSpei.addEventListener('click', () => switchMainTab('spei'));
+tabCode.addEventListener('click', () => switchMainTab('code'));
+
+function openModal(defaultTab: 'login' | 'spei' | 'code' = 'login') {
+  switchMainTab(defaultTab);
   authModal.classList.remove('hidden');
 }
 
 function closeModal() {
   authModal.classList.add('hidden');
   errorMsg.classList.add('hidden');
-  authForm.reset();
+  successMsg.classList.add('hidden');
+  codeMsg.classList.add('hidden');
 }
 
-function updateModalUI() {
+function updateSubtabUI() {
   errorMsg.classList.add('hidden');
+  successMsg.classList.add('hidden');
   if (isLoginMode) {
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
+    subtabLogin.classList.add('active');
+    subtabRegister.classList.remove('active');
     modalTitle.textContent = 'Iniciar Sesión';
-    modalSubtitle.textContent = 'Accede a tus picks premium';
+    modalSubtitle.textContent = 'Accede a tus picks premium y análisis IA';
     submitBtn.textContent = 'Entrar al Sistema';
   } else {
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
+    subtabRegister.classList.add('active');
+    subtabLogin.classList.remove('active');
     modalTitle.textContent = 'Crear Cuenta';
-    modalSubtitle.textContent = 'Únete a Rey Taco Picks';
+    modalSubtitle.textContent = 'Únete y recibe predicciones de alto valor';
     submitBtn.textContent = 'Registrarse';
   }
 }
 
-loginBtn.addEventListener('click', () => openModal(true));
+loginBtn.addEventListener('click', () => {
+  if (currentUser) {
+    // Logout confirmation
+    if (confirm(`¿Cerrar sesión de ${currentUser.email}?`)) {
+      currentUser = null;
+      isSubscribed = false;
+      localStorage.removeItem('rey_taco_user');
+      if (supabase) supabase.auth.signOut();
+      updateAuthHeaderState();
+      fetchPicks();
+    }
+  } else {
+    openModal('login');
+  }
+});
+
 closeModalBtn.addEventListener('click', closeModal);
 authModal.addEventListener('click', (e) => {
   if (e.target === authModal) closeModal();
 });
 
-tabLogin.addEventListener('click', () => { isLoginMode = true; updateModalUI(); });
-tabRegister.addEventListener('click', () => { isLoginMode = false; updateModalUI(); });
+subtabLogin.addEventListener('click', () => { isLoginMode = true; updateSubtabUI(); });
+subtabRegister.addEventListener('click', () => { isLoginMode = false; updateSubtabUI(); });
 
 premiumBadge?.addEventListener('click', () => {
   if (!isSubscribed) {
-    openModal(false);
+    openModal('spei');
   }
 });
 
-// Auth Logic (Supabase)
+// Copy CLABE
+copyClabeBtn?.addEventListener('click', () => {
+  navigator.clipboard.writeText('012180015228133759');
+  copyClabeBtn.textContent = '✅ ¡Copiada!';
+  setTimeout(() => { copyClabeBtn.textContent = '📋 Copiar'; }, 2500);
+});
+
+// VIP Code Redemption
+codeForm?.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const code = vipCodeInput.value.trim().toUpperCase();
+  const validCodes = ['REYTACOVIP', 'TACOVIP2026', 'CARLOSVIP', 'GOLDENPICK'];
+  
+  if (validCodes.includes(code)) {
+    isSubscribed = true;
+    currentUser = { email: currentUser?.email || 'VIP Member', is_premium: true };
+    localStorage.setItem('rey_taco_user', JSON.stringify(currentUser));
+    codeMsg.className = 'auth-success';
+    codeMsg.textContent = '🎉 ¡Código válido! Acceso VIP activado con éxito.';
+    codeMsg.classList.remove('hidden');
+    updateAuthHeaderState();
+    setTimeout(() => {
+      closeModal();
+      fetchPicks();
+    }, 1500);
+  } else {
+    codeMsg.className = 'auth-error';
+    codeMsg.textContent = '❌ Código no válido o expirado. Contacta a soporte por WhatsApp.';
+    codeMsg.classList.remove('hidden');
+  }
+});
+
+function updateAuthHeaderState() {
+  if (currentUser?.email === 'carlosds1017@gmail.com') {
+    loginBtn.textContent = '👑 Admin (Carlos)';
+    premiumBadge.innerHTML = '👑 Admin VIP';
+    premiumBadge.classList.add('badge-gold');
+  } else if (isSubscribed) {
+    loginBtn.textContent = `👤 ${currentUser?.email?.split('@')[0] || 'Usuario'}`;
+    premiumBadge.innerHTML = '👑 VIP Activado';
+    premiumBadge.classList.add('badge-gold');
+  } else if (currentUser) {
+    loginBtn.textContent = `👤 ${currentUser?.email?.split('@')[0] || 'Usuario'}`;
+    premiumBadge.innerHTML = 'Pagar VIP';
+    premiumBadge.classList.remove('badge-gold');
+  } else {
+    loginBtn.textContent = 'Iniciar Sesión';
+    premiumBadge.innerHTML = 'Acceso Premium';
+    premiumBadge.classList.remove('badge-gold');
+  }
+}
+
+// Auth Logic (Supabase + Admin Bypass)
 authForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!supabase) {
-    errorMsg.textContent = "Error: Base de datos no conectada.";
-    errorMsg.classList.remove('hidden');
-    return;
-  }
-
-  const email = emailInput.value;
+  const email = emailInput.value.trim();
   const password = passwordInput.value;
+  
   submitBtn.disabled = true;
   submitBtn.textContent = "Procesando...";
   errorMsg.classList.add('hidden');
+  successMsg.classList.add('hidden');
+
+  // Direct Admin Login for Carlos
+  if (email.toLowerCase() === 'carlosds1017@gmail.com') {
+    currentUser = { email: 'carlosds1017@gmail.com', is_premium: true, role: 'admin' };
+    isSubscribed = true;
+    localStorage.setItem('rey_taco_user', JSON.stringify(currentUser));
+    successMsg.textContent = '👑 ¡Bienvenido, Administrador Carlos!';
+    successMsg.classList.remove('hidden');
+    updateAuthHeaderState();
+    setTimeout(() => {
+      closeModal();
+      fetchPicks();
+    }, 1000);
+    submitBtn.disabled = false;
+    return;
+  }
+
+  if (!supabase) {
+    errorMsg.textContent = "Error: Base de datos no conectada.";
+    errorMsg.classList.remove('hidden');
+    submitBtn.disabled = false;
+    return;
+  }
 
   try {
     if (isLoginMode) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      
+      // Check if user is premium in profiles table
+      let isPrem = false;
+      try {
+        const { data: profile } = await supabase.from('profiles').select('is_premium').eq('id', data.user.id).single();
+        if (profile?.is_premium) isPrem = true;
+      } catch (pe) {}
+
+      currentUser = { email: data.user.email, id: data.user.id, is_premium: isPrem };
+      isSubscribed = isPrem;
+      localStorage.setItem('rey_taco_user', JSON.stringify(currentUser));
+      
+      successMsg.textContent = '✅ ¡Sesión iniciada con éxito!';
+      successMsg.classList.remove('hidden');
+      updateAuthHeaderState();
+      setTimeout(() => {
+        closeModal();
+        fetchPicks();
+      }, 1000);
     } else {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
+      
+      currentUser = { email: data.user?.email || email, id: data.user?.id, is_premium: false };
+      localStorage.setItem('rey_taco_user', JSON.stringify(currentUser));
+      
+      successMsg.textContent = '✅ Cuenta creada con éxito. Ahora puedes adquirir tu pase VIP por SPEI.';
+      successMsg.classList.remove('hidden');
+      updateAuthHeaderState();
+      setTimeout(() => {
+        switchMainTab('spei');
+      }, 1500);
     }
-    closeModal();
   } catch (err: any) {
     errorMsg.textContent = err.message || "Error al procesar la solicitud.";
     errorMsg.classList.remove('hidden');
   } finally {
     submitBtn.disabled = false;
-    updateModalUI();
   }
 });
 
-if (supabase) {
-  isSubscribed = true;
-  loginBtn.textContent = 'Modo Administrador';
-  premiumBadge.innerHTML = '👑 VIP Activado';
-  
-  supabase.auth.onAuthStateChange(async () => {
-    fetchPicks();
-    fetchHistory();
-  });
-}
+// Initial header state
+updateAuthHeaderState();
+
 
 function getSportColorClass(sport: string) {
   const s = sport.toLowerCase();
