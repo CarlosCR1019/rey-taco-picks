@@ -138,7 +138,7 @@ const authForm = document.getElementById('auth-form') as HTMLFormElement;
 const emailInput = document.getElementById('auth-email') as HTMLInputElement;
 const passwordInput = document.getElementById('auth-password') as HTMLInputElement;
 const errorMsg = document.getElementById('auth-error')!;
-const submitBtn = document.getElementById('auth-submit-btn')!;
+const submitBtn = document.getElementById('auth-submit-btn') as HTMLButtonElement;
 
 function openModal(isLogin: boolean = true) {
   isLoginMode = isLogin;
