@@ -895,7 +895,13 @@ def fase7_guardar_y_notificar(picks):
             supabase.table("picks").insert(picks).execute()
             print("   ✅ Picks subidos exitosamente.")
         except Exception as e:
-            print(f"   ❌ Error Supabase: {e}")
+            try:
+                # Fallback adaptativo: quitar campos opcionales no migrados
+                clean_picks = [{k: v for k, v in p.items() if k != 'horario'} for p in picks]
+                supabase.table("picks").insert(clean_picks).execute()
+                print("   ✅ Picks subidos exitosamente (modo adaptativo).")
+            except Exception as err:
+                print(f"   ❌ Error Supabase: {err}")
             _guardar_local(picks)
     else:
         _guardar_local(picks)
