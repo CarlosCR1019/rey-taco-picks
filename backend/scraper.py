@@ -491,7 +491,7 @@ def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
     modelos = [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
-        "deepseek-r1-distill-llama-70b"
+        "gemma2-9b-it"
     ]
     for modelo in modelos:
         try:
@@ -504,7 +504,8 @@ def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
                 return resp
         except Exception as e:
             if "429" in str(e) or "rate_limit" in str(e).lower():
-                print(f"   ⚠️ Rate limit en {modelo}. Probando modelo alternativo...")
+                print(f"   ⚠️ Rate limit en {modelo}. Pausando 2s y probando modelo alternativo...")
+                time.sleep(2)
                 continue
             else:
                 print(f"   ⚠️ Error en Groq ({modelo}): {e}")
