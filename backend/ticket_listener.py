@@ -94,6 +94,37 @@ def responder(chat_id, texto):
     except:
         pass
 
+ADMIN_CHAT_ID = 5912533842
+
+def responder_publico(chat_id):
+    """Envía mensaje comercial / bienvenida automático a cualquier usuario que no sea el admin."""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        texto = (
+            "🌮👑 ¡Hola! Bienvenido al bot oficial de *Rey Taco Picks*.\n\n"
+            "📢 Para recibir nuestros análisis y picks gratuitos del día, entra a nuestro canal:\n"
+            "👉 @ReyTacoPicksFree\n\n"
+            "👑 Para recibir la cartera completa, córners y combinadas exclusivas antes de cada partido, adquiere tu *Pase VIP ($299 MXN)*:\n"
+            "👉 Escríbenos por WhatsApp: https://wa.me/525639331102\n\n"
+            "🌐 Web Oficial: https://rey-taco-picks-web.onrender.com"
+        )
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "👑 Adquirir VIP ($299 MXN)", "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"},
+                    {"text": "📢 Canal Gratuito", "url": "https://t.me/ReyTacoPicksFree"}
+                ],
+                [
+                    {"text": "🌐 Visitar Web Oficial", "url": "https://rey-taco-picks-web.onrender.com/"}
+                ]
+            ]
+        }
+        data = json.dumps({"chat_id": chat_id, "text": texto, "parse_mode": "Markdown", "reply_markup": keyboard}).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        urllib.request.urlopen(req, timeout=10)
+    except Exception as e:
+        print(f"Error respondiendo a público: {e}")
+
 def procesar_foto(update):
     """Procesa una foto recibida del admin."""
     message = update.get('message', {})
@@ -118,6 +149,21 @@ def procesar_foto(update):
     if download_photo(file_id, save_path):
         print(f"   ✅ Guardada: {save_path}")
         
+        # Actualizar manifest.json local
+        manifest_path = os.path.join(TICKETS_DIR, "manifest.json")
+        manifest_list = []
+        if os.path.exists(manifest_path):
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    manifest_list = json.load(f)
+            except Exception:
+                manifest_list = []
+        if filename not in manifest_list:
+            manifest_list.insert(0, filename)
+            with open(manifest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest_list, f, indent=2)
+            print("   📁 manifest.json actualizado.")
+        
         # Guardar referencia en Supabase
         if supabase:
             try:
@@ -128,25 +174,25 @@ def procesar_foto(update):
                 }).execute()
                 print("   ✅ Registrado en Supabase.")
             except Exception as e:
-                print(f"   ⚠️ Error en Supabase (tabla puede no existir): {e}")
+                print(f"   ⚠️ Error en Supabase (tabla opcional): {e}")
         
         # Reenviar al canal público
         reenviar_a_canal(file_id, caption)
         
         # Responder al admin
-        responder(chat_id, f"✅ ¡Ticket guardado y publicado!\nArchivo: {filename}")
+        responder(chat_id, f"✅ ¡Ticket guardado y publicado en el canal!\nArchivo: {filename}")
     else:
         responder(chat_id, "❌ Error al descargar la foto. Intenta de nuevo.")
 
 def main():
     print("="*60)
     print("📸  REY TACO PICKS — Listener de Tickets Ganadores")
+    print("   Modo: Whitelist Estricto (Admin ID: 5912533842)")
     print("="*60)
     print(f"Bot Token: ...{TELEGRAM_TOKEN[-8:]}")
     print(f"Canal: {CHANNEL_ID or 'No configurado'}")
     print(f"Carpeta: {os.path.abspath(TICKETS_DIR)}")
-    print("\nEsperando fotos... (Envía una foto al bot para guardarla)")
-    print("Presiona Ctrl+C para detener.\n")
+    print("\nEsperando mensajes... (Presiona Ctrl+C para detener)\n")
     
     offset = get_offset()
     
@@ -159,20 +205,27 @@ def main():
                 save_offset(offset)
                 
                 message = update.get('message', {})
+                chat_id = message.get('chat', {}).get('id')
+                if not chat_id:
+                    continue
                 
-                # Si es una foto, procesarla
+                # FILTRO ESTRICTO: Si NO es Carlos (5912533842)
+                if chat_id != ADMIN_CHAT_ID:
+                    print(f"👤 Mensaje recibido de usuario público {chat_id}. Enviando auto-respuesta...")
+                    responder_publico(chat_id)
+                    continue
+                
+                # SI ES CARLOS (ADMIN MASTER):
                 if 'photo' in message:
                     procesar_foto(update)
                 elif 'text' in message:
-                    # Comandos de texto
                     raw_text = message.get('text', '').strip()
                     texto = raw_text.lower()
-                    chat_id = message['chat']['id']
                     
                     if texto == '/start':
                         responder(chat_id, 
-                            "👑 ¡Bienvenido a Rey Taco Picks Bot!\n\n"
-                            "📸 Envíame fotos de tickets ganadores y las publicaré en el canal y en la web.\n\n"
+                            "👑 ¡Bienvenido Administrador Carlos!\n\n"
+                            "📸 Envíame cualquier foto de ticket ganador y la publicaré automáticamente en el canal VIP y en la web.\n\n"
                             "👑 COMANDOS DE ADMINISTRADOR:\n"
                             "• /vip correo@ejemplo.com ➔ Activa el VIP a un cliente en Supabase\n"
                             "• /quitarvip correo@ejemplo.com ➔ Revoca el VIP\n"
