@@ -194,6 +194,54 @@ def click_category(driver, category):
     """
     return driver.execute_script(script)
 
+def es_partido_futuro_valido(horario_str):
+    """
+    Verifica si un partido es estrictamente FUTURO (aún no empieza)
+    respecto a la hora oficial actual de la Ciudad de México (CDMX).
+    Descarta con precisión matemática cualquier partido cuya hora ya haya pasado.
+    """
+    try:
+        try:
+            import zoneinfo
+            tz = zoneinfo.ZoneInfo("America/Mexico_City")
+            ahora = datetime.now(tz)
+        except Exception:
+            ahora = datetime.utcnow() - timedelta(hours=6)
+        
+        # 1. Formato con fecha y hora ej: "16/08 • 08:00" o "16/08 17:00"
+        match_fecha_hora = re.search(r'(\d{1,2})[/.-](\d{1,2})\s*(?:•|\s+)?\s*(\d{1,2}):(\d{2})', horario_str)
+        if match_fecha_hora:
+            dia = int(match_fecha_hora.group(1))
+            mes = int(match_fecha_hora.group(2))
+            hora = int(match_fecha_hora.group(3))
+            minuto = int(match_fecha_hora.group(4))
+            
+            anio = ahora.year
+            fecha_partido = datetime(anio, mes, dia, hora, minuto, tzinfo=ahora.tzinfo if hasattr(ahora, 'tzinfo') and ahora.tzinfo else None)
+            
+            # Si la hora de inicio ya pasó respecto a CDMX
+            if fecha_partido <= (ahora + timedelta(minutes=5)):
+                return False, f"Ya inició/terminó ({dia:02d}/{mes:02d} {hora:02d}:{minuto:02d} vs Hora CDMX {ahora.strftime('%H:%M')})"
+            return True, f"{dia:02d}/{mes:02d} • {hora:02d}:{minuto:02d}"
+
+        # 2. Formato solo hora ej: "Hoy 17:00 hrs" o "17:00"
+        match_hora = re.search(r'(\d{1,2}):(\d{2})', horario_str)
+        if match_hora:
+            hora = int(match_hora.group(1))
+            minuto = int(match_hora.group(2))
+            
+            if "mañana" in horario_str.lower() or "tomorrow" in horario_str.lower():
+                return True, f"Mañana {hora:02d}:{minuto:02d} hrs"
+            
+            fecha_partido = datetime(ahora.year, ahora.month, ahora.day, hora, minuto, tzinfo=ahora.tzinfo if hasattr(ahora, 'tzinfo') and ahora.tzinfo else None)
+            if fecha_partido <= (ahora + timedelta(minutes=5)):
+                return False, f"Ya inició/terminó ({hora:02d}:{minuto:02d} vs Hora CDMX {ahora.strftime('%H:%M')})"
+            return True, f"Hoy {hora:02d}:{minuto:02d} hrs"
+            
+        return True, horario_str
+    except Exception as e:
+        return True, horario_str
+
 def extract_events_from_page(driver):
     """Extrae ÚNICAMENTE eventos PRE-MATCH (no iniciados) de hoy y mañana directamente de Playdoit."""
     script = get_shadow_script() + """
@@ -207,6 +255,8 @@ def extract_events_from_page(driver):
             var rawText = c.innerText.trim();
             // 1. Descartar partidos virtuales, esports, cyber o simulados
             if (/e-fútbol|e-sports|esports|virtual|cyber|2x4\s*min|2x5\s*min|2x6\s*min|gt\s*sports/i.test(rawText)) return;
+
+            var lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
 
             // 2. Descartar partidos con minutos de juego en curso (ej: 24:19, 71:40, Descanso, 1ª mitad)
             var esEnJuegoAhora = lines.some(l => /^(\\d{1,2}:\\d{2}|descanso|1[ª°]\\s*mitad|2[ª°]\\s*mitad)$/i.test(l));
@@ -381,18 +431,23 @@ def fase1_escaneo_superficie(driver):
                 nuevos = 0
                 for e in eventos:
                     nombre = f"{e['local']} vs {e['visitante']}"
+                    # Filtro de tiempo estricto contra reloj CDMX
+                    es_valido_tiempo, horario_limpio = es_partido_futuro_valido(e.get('horario', 'Hoy'))
+                    if not es_valido_tiempo:
+                        continue
+                    
                     if not any(x["partido"] == nombre for x in partidos_data):
                         partidos_data.append({
                             "categoria": cat,
                             "partido": nombre,
                             "local": e['local'],
                             "visitante": e['visitante'],
-                            "horario": e.get('horario', 'Hoy'),
+                            "horario": horario_limpio,
                             "cuotas_superficie": e.get('cuotas', [])[:4],
-                            "info_texto": f"{cat}: {nombre}. Horario: {e.get('horario', 'Hoy')}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
+                            "info_texto": f"{cat}: {nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
                         })
                         nuevos += 1
-                print(f"✅ {nuevos} nuevos" if nuevos else "⏭️ sin nuevos")
+                print(f"✅ {nuevos} nuevos futuros" if nuevos else "⏭️ sin nuevos")
             else:
                 print("⚠️ no encontrada")
     except Exception as e:
@@ -402,6 +457,9 @@ def fase1_escaneo_superficie(driver):
     if not partidos_data:
         eventos = extract_events_from_page(driver)
         for e in eventos:
+            es_valido_tiempo, horario_limpio = es_partido_futuro_valido(e.get('horario', 'Hoy'))
+            if not es_valido_tiempo:
+                continue
             nombre = f"{e['local']} vs {e['visitante']}"
             if not any(x["partido"] == nombre for x in partidos_data):
                 partidos_data.append({
@@ -409,9 +467,9 @@ def fase1_escaneo_superficie(driver):
                     "partido": nombre,
                     "local": e['local'],
                     "visitante": e['visitante'],
-                    "horario": e.get('horario', 'Hoy'),
+                    "horario": horario_limpio,
                     "cuotas_superficie": e.get('cuotas', [])[:4],
-                    "info_texto": f"{nombre}. Horario: {e.get('horario', 'Hoy')}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
+                    "info_texto": f"{nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
                 })
         
     print(f"\n   📊 Total eventos únicos de HOY/MAÑANA para análisis: {len(partidos_data)}")
@@ -939,9 +997,15 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                 print(f"   🛑 DESCARTADO (Partido o pierna de parlay no existe en Playdoit hoy): {p_partido}")
                 continue
 
-            # 2. Corregir y forzar Horario Real de Playdoit
+            # 2. Corregir y forzar Horario Real de Playdoit y verificar que sea futuro en CDMX
             if match_encontrado and match_encontrado.get('horario'):
                 p['horario'] = match_encontrado.get('horario')
+            
+            es_valido_tiempo, horario_limpio = es_partido_futuro_valido(p.get('horario', 'Hoy'))
+            if not es_valido_tiempo:
+                print(f"   🛑 DESCARTADO (El partido ya inició o terminó en CDMX): {p_partido} [{p.get('horario')}]")
+                continue
+            p['horario'] = horario_limpio
             
             # 3. Limpieza y Normalización Matemática de Cuota
             raw_c = str(p.get('cuota', '1.85')).strip()
