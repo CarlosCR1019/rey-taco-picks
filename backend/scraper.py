@@ -536,31 +536,29 @@ def fase2_comparacion_mercado(partidos_data):
         return {}
 
 def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
-    """Ejecuta la llamada a Groq rotando inteligentemente de modelo si alguno alcanza el rate limit diario."""
+    """Ejecuta la llamada a Groq rotando inteligentemente con reintentos y pausa backoff."""
     modelos = [
         "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "llama-3.2-11b-vision-preview",
-        "llama-3.2-3b-preview",
-        "llama-3.2-1b-preview"
+        "llama-3.1-8b-instant"
     ]
-    for modelo in modelos:
-        try:
-            resp = client.chat.completions.create(
-                messages=messages,
-                model=modelo,
-                temperature=temperature
-            ).choices[0].message.content.strip()
-            if resp:
-                return resp
-        except Exception as e:
-            if "429" in str(e) or "rate_limit" in str(e).lower():
-                print(f"   ⚠️ Rate limit en {modelo}. Pausando 3s y probando modelo alternativo...")
-                time.sleep(3)
-                continue
-            else:
-                print(f"   ⚠️ Error en Groq ({modelo}): {e}")
-                continue
+    for intento in range(2):
+        for modelo in modelos:
+            try:
+                resp = client.chat.completions.create(
+                    messages=messages,
+                    model=modelo,
+                    temperature=temperature
+                ).choices[0].message.content.strip()
+                if resp:
+                    return resp
+            except Exception as e:
+                if "429" in str(e) or "rate_limit" in str(e).lower():
+                    print(f"   ⚠️ Rate limit en {modelo}. Pausando 4s para reintentar...")
+                    time.sleep(4)
+                    continue
+                else:
+                    print(f"   ⚠️ Nota en Groq ({modelo}): {e}")
+                    continue
     return ""
 
 # ============================================================
