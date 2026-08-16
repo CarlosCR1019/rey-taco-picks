@@ -661,28 +661,35 @@ def fase4_inmersion(driver, objetivos, partidos_data):
                 if (!host) return "";
                 var shadow = host.shadowRoot;
                 
-                // Regresar a 'Todas' o 'Principal' para capturar Córners, Remates y Hándicaps
-                var todasBtn = Array.from(shadow.querySelectorAll('button, [role="tab"]')).find(function(b) {
-                    return b.innerText && (b.innerText.trim().toLowerCase() === 'todas' || b.innerText.trim().toLowerCase() === 'principal');
-                });
-                if (todasBtn) { todasBtn.click(); }
-                
-                var marketBoxes = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="EventDetailsMarketBoxContainer"]'));
+                // Iterar sobre pestañas clave: Todas, Tiros esquina, Goles, Tarjetas
+                var tabsToClick = ['todas', 'tiros esquina', 'goles', 'tarjetas', 'combinación'];
+                var allTabs = Array.from(shadow.querySelectorAll('button, [role="tab"]'));
                 var marketSummary = [];
                 
-                marketBoxes.forEach(function(box) {
-                    var nameEl = box.querySelector('[class*="EventDetailsMarketName"], [class*="MarketName"]');
-                    var marketName = nameEl ? nameEl.innerText.trim() : "";
-                    if (!marketName) return;
-                    
-                    var oddButtons = Array.from(box.querySelectorAll('button, [class*="OddBoxButton"]'));
-                    var oddsList = oddButtons.map(function(btn) {
-                        return btn.innerText.replace(/\\n+/g, ' ').trim();
-                    }).filter(Boolean);
-                    
-                    if (oddsList.length > 0) {
-                        marketSummary.push("▶ MERCADO [" + marketName + "]: " + oddsList.join(" | "));
+                tabsToClick.forEach(function(tabName) {
+                    var tabBtn = allTabs.find(function(b) {
+                        return b.innerText && b.innerText.trim().toLowerCase().includes(tabName);
+                    });
+                    if (tabBtn) {
+                        try { tabBtn.click(); } catch(e) {}
                     }
+                    
+                    var marketBoxes = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="EventDetailsMarketBoxContainer"], [class*="MarketBoxContainer"]'));
+                    marketBoxes.forEach(function(box) {
+                        var nameEl = box.querySelector('[class*="EventDetailsMarketName"], [class*="MarketName"]');
+                        var marketName = nameEl ? nameEl.innerText.trim() : "";
+                        if (!marketName) return;
+                        
+                        var oddButtons = Array.from(box.querySelectorAll('button, [class*="OddBoxButton"]'));
+                        var oddsList = oddButtons.map(function(btn) {
+                            return btn.innerText.replace(/\\n+/g, ' ').trim();
+                        }).filter(Boolean);
+                        
+                        var entry = "▶ MERCADO [" + marketName + "]: " + oddsList.join(" | ");
+                        if (oddsList.length > 0 && !marketSummary.includes(entry)) {
+                            marketSummary.push(entry);
+                        }
+                    });
                 });
                 
                 return marketSummary.join("\\n");
@@ -924,6 +931,42 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
         fin = resp_final.rfind(']') + 1
         picks = json.loads(resp_final[inicio:fin])
         
+        # -------------------------------------------------------------
+        # CALIBRACIÓN DE PRECISIÓN MILIMÉTRICA CON PLAYDOIT
+        # Garantiza que el momio publicado sea 100% el que tiene Playdoit en pantalla.
+        # -------------------------------------------------------------
+        for p in picks:
+            p_partido = p.get('partido', '').lower()
+            p_pick = p.get('pick', '').lower()
+            
+            # Buscar en datos profundos de Playdoit
+            for dp in datos_profundos:
+                dp_partido = dp.get('partido', '').lower()
+                if dp_partido in p_partido or p_partido in dp_partido or any(w in dp_partido for w in p_partido.split() if len(w) > 4):
+                    mercados = dp.get('mercados_profundos', '')
+                    
+                    # Buscar coincidencia exacta en córners o goles
+                    if 'córners' in p_pick or 'tiros de esquina' in p_pick or 'goles' in p_pick or 'carreras' in p_pick:
+                        match_num = re.search(r'(\d+\.5)', p_pick)
+                        if match_num:
+                            num_linea = match_num.group(1)
+                            # Buscar en los mercados extraídos de Playdoit ej: "Más de 8.5 1.62"
+                            pattern = rf'(?:más\s+de|over)\s+{re.escape(num_linea)}\s+(\d+\.\d{{2}})'
+                            found_odd = re.search(pattern, mercados, re.IGNORECASE)
+                            if found_odd:
+                                p['cuota'] = found_odd.group(1)
+                    
+                    # Buscar coincidencia en Resultado Final / Ganador
+                    if 'gana' in p_pick and not p.get('es_parlay'):
+                        cuotas_sup = dp.get('cuotas_superficie', [])
+                        if cuotas_sup and len(cuotas_sup) >= 1:
+                            if 'empate' not in p_pick:
+                                # Primer valor es local
+                                if dp.get('local', '').lower() in p_pick:
+                                    p['cuota'] = cuotas_sup[0]
+                                elif dp.get('visitante', '').lower() in p_pick and len(cuotas_sup) >= 3:
+                                    p['cuota'] = cuotas_sup[2]
+
         print(f"\n   🏆 CARTERA APROBADA ({len(picks)} selecciones de alta credibilidad):")
         for p in picks:
             valor = " 💎 VALOR" if p.get('tiene_valor') else ""
