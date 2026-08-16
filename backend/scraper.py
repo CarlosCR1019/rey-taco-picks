@@ -140,14 +140,44 @@ def click_tab_hoy(driver):
     time.sleep(3)
 
 def click_decimal_toggle(driver):
-    """Cambia el formato de cuotas a Decimal en la barra lateral."""
+    """Cambia el formato de cuotas a Decimal en la barra lateral de Playdoit."""
     script = get_shadow_script() + """
     try {
         var shadow = getShadow();
         if(!shadow) return false;
+        
+        // 1. Verificar si ya está en Decimal
+        var selects = Array.from(shadow.querySelectorAll('select'));
+        for (var s of selects) {
+            for (var i = 0; i < s.options.length; i++) {
+                if (s.options[i].text.toLowerCase().includes('decimal') || s.options[i].value.toLowerCase().includes('decimal')) {
+                    s.selectedIndex = i;
+                    s.dispatchEvent(new Event('change', { bubbles: true }));
+                    return true;
+                }
+            }
+        }
+        
+        // 2. Buscar dropdowns personalizados con 'Momios formato'
+        var formatContainers = Array.from(shadow.querySelectorAll('div, span, button')).filter(function(el) {
+            return el.innerText && el.innerText.trim().toLowerCase().includes('momios formato');
+        });
+        
+        if (formatContainers.length > 0) {
+            var dropdownTrigger = formatContainers[0].parentElement ? formatContainers[0].parentElement.querySelector('[class*="Select"], [class*="Dropdown"], button') : null;
+            if (dropdownTrigger) {
+                dropdownTrigger.click();
+            }
+        }
+        
+        // 3. Buscar cualquier elemento con texto 'Decimal'
         var all = Array.from(shadow.querySelectorAll('*'));
-        var decimalBtn = all.find(n => n.textContent.trim() === 'Decimal' && n.children.length === 0);
-        if(decimalBtn) { decimalBtn.click(); return true; }
+        var decimalBtn = all.find(n => n.textContent && n.textContent.trim().toLowerCase() === 'decimal' && n.children.length === 0);
+        if(decimalBtn) { 
+            decimalBtn.click(); 
+            if (decimalBtn.parentElement) decimalBtn.parentElement.click();
+            return true; 
+        }
         return false;
     } catch(e) { return false; }
     """
@@ -834,7 +864,8 @@ ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON):
 4. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
    - Parlay 1 ("Parlay Seguro"): 2 selecciones de altísima probabilidad con cuota combinada 2.10 - 2.80. Marcar "es_parlay": true.
    - Parlay 2 ("Parlay Estadístico Córners/Props" o "Parlay Bomba"): 2-3 selecciones con cuota combinada 3.20 - 6.50. Marcar "es_parlay": true.
-5. Cuotas EXCLUSIVAMENTE en formato DECIMAL (ej. 1.85, 2.30, 3.40).
+5. CUOTAS EXCLUSIVAMENTE EN FORMATO DECIMAL Y EXTRAÍDAS LITERALMENTE DE PLAYDOIT:
+   - PROHIBIDO INVENTAR O APROXIMAR CUOTAS. Debes copiar EXACTAMENTE la cuota decimal que aparece en los datos reales del mercado de Playdoit (por ejemplo, si en Total Tiros de Esquina dice "Más de 8.5 1.62" o "Más de 9.5 2.05", la cuota debe ser 1.62 o 2.05).
 6. "categoria": "Tiros de Esquina" (SOLO fútbol), "Fútbol", "Béisbol", "Fútbol Americano", "Parlay Seguro", "Parlay Bomba", etc.
 
 Devuelve ÚNICAMENTE un JSON array válido con este formato:
