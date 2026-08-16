@@ -144,7 +144,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <form id="auth-form" class="auth-form">
             <div class="form-group">
               <label>Correo Electrónico</label>
-              <input type="email" id="auth-email" required placeholder="carlosds1017@gmail.com" />
+              <input type="email" id="auth-email" required placeholder="tu@correo.com" />
             </div>
             <div class="form-group">
               <label>Contraseña</label>
@@ -485,8 +485,15 @@ authForm.addEventListener('submit', async (e) => {
   errorMsg.classList.add('hidden');
   successMsg.classList.add('hidden');
 
-  // Direct Admin Login for Carlos
+  // Admin Login strictly requires exact password: 010319NyC
   if (email.toLowerCase() === 'carlosds1017@gmail.com') {
+    if (password !== '010319NyC') {
+      errorMsg.textContent = '❌ Contraseña de Administrador incorrecta.';
+      errorMsg.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitBtn.textContent = isLoginMode ? 'Entrar al Sistema' : 'Crear Cuenta';
+      return;
+    }
     currentUser = { email: 'carlosds1017@gmail.com', is_premium: true, role: 'admin' };
     isSubscribed = true;
     localStorage.setItem('rey_taco_user', JSON.stringify(currentUser));
@@ -796,38 +803,20 @@ function loadTickets() {
   const grid = document.getElementById('tickets-grid');
   if (!grid) return;
   
-  // Try to load tickets from the /tickets/ folder
-  // We'll check for known ticket files
-  const ticketFiles: string[] = [];
-  
-  // Scan for ticket images (we'll try sequential names)
-  const checkTicket = (filename: string) => {
-    const img = new Image();
-    img.onload = () => {
-      ticketFiles.push(filename);
-      renderTickets(ticketFiles);
-    };
-    img.src = `/tickets/${filename}`;
-  };
-  
-  // Check for recently saved tickets (timestamp-based names)
-  const now = Math.floor(Date.now() / 1000);
-  for (let i = 0; i < 20; i++) {
-    const ts = now - (i * 86400); // Check last 20 days
-    checkTicket(`ticket_${ts}.jpg`);
-  }
-  
-  // Also try numbered tickets
-  for (let i = 1; i <= 10; i++) {
-    checkTicket(`ticket_${i}.jpg`);
-  }
-  
-  // Show placeholder if no tickets found after a delay
-  setTimeout(() => {
-    if (ticketFiles.length === 0) {
-      grid.innerHTML = '<p class="tickets-empty">📸 Envía fotos de tickets ganadores al bot de Telegram y aparecerán aquí automáticamente.</p>';
-    }
-  }, 2000);
+  fetch('/tickets/manifest.json')
+    .then(r => r.json())
+    .then(files => {
+      if (Array.isArray(files) && files.length > 0) {
+        renderTickets(files);
+      } else {
+        grid.innerHTML = '<p class="tickets-empty">📸 Envía fotos de tickets ganadores al bot de Telegram y aparecerán aquí automáticamente.</p>';
+      }
+    })
+    .catch(() => {
+      // Fallback a archivos conocidos
+      const fallbackFiles = ['ticket_1786845803.jpg', 'ticket_1786845710.jpg'];
+      renderTickets(fallbackFiles);
+    });
 }
 
 function renderTickets(files: string[]) {
