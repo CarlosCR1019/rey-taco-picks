@@ -205,9 +205,10 @@ def extract_events_from_page(driver):
     containers.forEach(function(c) {
         try {
             var rawText = c.innerText.trim();
-            var lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
-            
-            // 1. Descartar partidos con minutos de juego en curso (ej: 24:19, 71:40, Descanso, 1ª mitad)
+            // 1. Descartar partidos virtuales, esports, cyber o simulados
+            if (/e-fútbol|e-sports|esports|virtual|cyber|2x4\s*min|2x5\s*min|2x6\s*min|gt\s*sports/i.test(rawText)) return;
+
+            // 2. Descartar partidos con minutos de juego en curso (ej: 24:19, 71:40, Descanso, 1ª mitad)
             var esEnJuegoAhora = lines.some(l => /^(\\d{1,2}:\\d{2}|descanso|1[ª°]\\s*mitad|2[ª°]\\s*mitad)$/i.test(l));
             if (esEnJuegoAhora) return;
 
@@ -481,9 +482,9 @@ def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
     modelos = [
         "llama-3.3-70b-versatile",
         "llama-3.1-8b-instant",
-        "llama3-70b-8192",
-        "llama3-8b-8192",
-        "mixtral-8x7b-32768"
+        "llama-3.2-11b-vision-preview",
+        "llama-3.2-3b-preview",
+        "llama-3.2-1b-preview"
     ]
     for modelo in modelos:
         try:
@@ -496,8 +497,8 @@ def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
                 return resp
         except Exception as e:
             if "429" in str(e) or "rate_limit" in str(e).lower():
-                print(f"   ⚠️ Rate limit en {modelo}. Pausando 2s y probando modelo alternativo...")
-                time.sleep(2)
+                print(f"   ⚠️ Rate limit en {modelo}. Pausando 3s y probando modelo alternativo...")
+                time.sleep(3)
                 continue
             else:
                 print(f"   ⚠️ Error en Groq ({modelo}): {e}")
@@ -911,14 +912,31 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                     match_encontrado = dp
                     break
             
-            # Si es parlay, validar que los equipos existan en la lista de hoy
+            # Si es parlay, validar que TODAS las partes existan en la lista de hoy
             if p.get('es_parlay'):
-                partes = p_partido.split('+')
-                if any(any(dp.get('local', '').lower() in parte.lower() or dp.get('visitante', '').lower() in parte.lower() for dp in datos_profundos) for parte in partes):
+                partes = re.split(r'[+&/]|(?:\s+y\s+)', p_partido, flags=re.IGNORECASE)
+                todas_partes_validas = True
+                for parte in partes:
+                    parte = parte.strip()
+                    if len(parte) < 3: continue
+                    parte_existe = any(
+                        (dp.get('local', '') and len(dp.get('local', '')) > 3 and dp.get('local', '').lower() in parte.lower()) or
+                        (dp.get('visitante', '') and len(dp.get('visitante', '')) > 3 and dp.get('visitante', '').lower() in parte.lower()) or
+                        (dp.get('partido', '').lower() in parte.lower()) or
+                        (parte.lower() in dp.get('partido', '').lower())
+                        for dp in datos_profundos
+                    )
+                    if not parte_existe:
+                        todas_partes_validas = False
+                        break
+                
+                if todas_partes_validas and len(partes) >= 2:
                     match_encontrado = datos_profundos[0] if datos_profundos else {}
+                else:
+                    match_encontrado = None
             
-            if not match_encontrado and not p.get('es_parlay'):
-                print(f"   🛑 DESCARTADO (Partido no existe en Playdoit hoy): {p_partido}")
+            if not match_encontrado:
+                print(f"   🛑 DESCARTADO (Partido o pierna de parlay no existe en Playdoit hoy): {p_partido}")
                 continue
 
             # 2. Corregir y forzar Horario Real de Playdoit
