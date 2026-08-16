@@ -1067,16 +1067,19 @@ def _enviar_telegram(picks):
             return
 
         # 1. Enviar el reporte COMPLETO con todos los picks a Carlos (Privado)
-        mensaje_completo = "👑 REY TACO PICKS VIP (CARTERA COMPLETA) 👑\n\n"
+        mensaje_completo = "👑 REY TACO PICKS VIP (CARTERA OFICIAL) 👑\n\n"
         for p in picks:
             valor = " 💎VALOR +EV" if p.get('tiene_valor') else ""
             parlay = "🔗 PARLAY: " if p.get('es_parlay') else ""
             horario = f"  🕒 {p.get('horario', 'Hoy')}\n" if p.get('horario') else ""
-            mensaje_completo += f"{parlay}{p.get('categoria', '')}\n"
-            mensaje_completo += f"  {p.get('partido', '')}\n"
+            razonamiento = f"  🧠 ¿Por qué este pick?: {p.get('razonamiento', 'Ventaja estadística +EV confirmada.')}\n" if p.get('razonamiento') else ""
+            
+            mensaje_completo += f"{parlay}[{p.get('categoria', 'Mercado')}]\n"
+            mensaje_completo += f"  🏟️ {p.get('partido', '')}\n"
             mensaje_completo += horario
-            mensaje_completo += f"  Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
-            mensaje_completo += f"  Confianza: {p.get('confianza', '')}\n\n"
+            mensaje_completo += f"  🎯 Pick: {p.get('pick', '')} @ {p.get('cuota', '')}{valor}\n"
+            mensaje_completo += f"  🔥 Confianza: {p.get('confianza', '85%')}\n"
+            mensaje_completo += razonamiento + "\n"
         
         mensaje_completo += "🌐 Cartera completa en vivo: https://rey-taco-picks-web.onrender.com"
 
