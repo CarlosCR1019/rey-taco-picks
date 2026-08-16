@@ -205,86 +205,62 @@ def click_category(driver, category):
     return driver.execute_script(script)
 
 def extract_events_from_page(driver):
-    """Extrae ÚNICAMENTE eventos PRE-MATCH (no iniciados) de hoy y mañana, descartando rigurosamente partidos en vivo."""
+    """Extrae ÚNICAMENTE eventos PRE-MATCH (no iniciados) de hoy y mañana directamente de Playdoit."""
     script = get_shadow_script() + """
     var shadow = getShadow();
     if(!shadow) return [];
     var containers = shadow.querySelectorAll('div[class*="EventBoxContainer"]');
     var result = [];
-    
-    var hoy = new Date();
-    var diaHoy = hoy.getDate();
-    var diaManana = (new Date(hoy.getTime() + 24*60*60*1000)).getDate();
-    var diasValidos = [diaHoy, diaManana];
-    var horaActual = hoy.getHours();
-    var minActual = hoy.getMinutes();
 
-    containers.forEach(c => {
+    containers.forEach(function(c) {
         try {
-            var fullText = c.innerText.toLowerCase();
+            var rawText = c.innerText.trim();
+            var lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
             
-            // 1. FILTRO ANTI EN-VIVO ESTRICTO: Descartar si ya empezó el partido
-            var esEnVivo = fullText.includes("en vivo") || 
-                           fullText.includes("live") || 
-                           fullText.includes("1ª mitad") || 
-                           fullText.includes("2ª mitad") || 
-                           fullText.includes("1° tiempo") || 
-                           fullText.includes("2° tiempo") || 
-                           c.querySelector('div[class*="LiveIndicator"], div[class*="LiveBadge"], span[class*="LiveBadge"], div[class*="ScoreBox-"], div[class*="EventScore-"]') !== null ||
-                           /\\b(\\d+°\\s*inning|\\d+ª\\s*entrada|\\d+ª\\s*parte|\\d{1,2}:\\d{2}\\s*min|\\d+\\s*['’]\\s*min|\\d+\\s*['’])\\b/i.test(fullText);
-            
-            if (esEnVivo) return; // DESCARTAR INMEDIATAMENTE
+            // 1. Descartar partidos con minutos de juego en curso (ej: 24:19, 71:40, Descanso, 1ª mitad)
+            var esEnJuegoAhora = lines.some(l => /^(\\d{1,2}:\\d{2}|descanso|1[ª°]\\s*mitad|2[ª°]\\s*mitad)$/i.test(l));
+            if (esEnJuegoAhora) return;
 
-            // 2. Filtro de fechas lejanas (más de 2 días)
-            var esFuturoLejano = false;
-            var matchFecha = fullText.match(/(\\d{1,2})\\s*(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/);
-            if (matchFecha) {
-                var diaNum = parseInt(matchFecha[1]);
-                if (!diasValidos.includes(diaNum)) {
-                    esFuturoLejano = true;
-                }
-            }
-            if (esFuturoLejano) return;
+            // 2. Extraer Fecha y Hora
+            var horario = "Hoy";
+            var dateLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}|\\d{1,2}\\s+de\\s+(?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/i.test(l));
+            var timeLine = lines.find(l => /^\\d{1,2}:\\d{2}$/.test(l));
 
-            // 3. Extraer y verificar hora
-            var timeEl = c.querySelector('div[class*="EventTime-"], div[class*="Time-"], span[class*="Time-"]');
-            var horarioStr = "Hoy";
-            var esPasado = false;
-
-            if (timeEl && timeEl.innerText.trim()) {
-                horarioStr = timeEl.innerText.trim();
-            } else {
-                var matchHora = c.innerText.match(/(\\d{1,2}):(\\d{2})/);
-                if (matchHora) {
-                    var h = parseInt(matchHora[1]);
-                    var m = parseInt(matchHora[2]);
-                    // Si la hora es de hoy y ya pasó respecto a la hora actual de la máquina
-                    if (h < horaActual || (h === horaActual && m <= minActual + 5)) {
-                        // Si no dice explícitamente "mañana", es un partido que ya empezó hoy
-                        if (!fullText.includes("mañana") && !fullText.includes("tomorrow")) {
-                            esPasado = true;
-                        }
-                    }
-                    horarioStr = (fullText.includes("mañana") ? "Mañana " : "Hoy ") + matchHora[1] + ":" + matchHora[2] + " hrs";
-                }
+            if (dateLine) {
+                horario = dateLine;
+            } else if (timeLine) {
+                horario = "Hoy " + timeLine + " hrs";
             }
 
-            if (esPasado) return; // DESCARTAR: La hora de inicio ya pasó
+            // 3. Extraer Nombres de Equipos
+            var teamCandidates = lines.filter(l => {
+                if (l.length < 3 || l.length > 35) return false;
+                if (/^(sgp|en vivo|live|hoy|mañana|resultado final|tiempo regular)$/i.test(l)) return false;
+                if (/^[\\+\\-]?\\d+(\\.\\d+)?$/.test(l)) return false;
+                if (/^\\d{1,2}[\\/\\:]\\d{1,2}/.test(l)) return false;
+                if (/liga|copa|premier|women|femenil|tournament|champions/i.test(l) && !l.includes('Pumas') && !l.includes('América') && !l.includes('Chivas') && !l.includes('Santos')) return false;
+                return true;
+            });
 
-            var names = c.querySelectorAll('div[class*="CompetitorName-"]');
-            var odds = c.querySelectorAll('button[class*="OddBoxButton-"]');
-            if(names.length >= 2) {
-                var oddsData = [];
-                odds.forEach(o => {
-                    var val = o.querySelector('div[class*="OddValue-"]');
-                    if(val) oddsData.push(val.innerText.trim());
+            if (teamCandidates.length >= 2) {
+                var local = teamCandidates[0];
+                var visitante = teamCandidates[1];
+
+                // 4. Extraer Cuotas Decimales de Playdoit
+                var oddsElements = c.querySelectorAll('button[class*="OddBoxButton-"], div[class*="OddBox-"], span[class*="OddValue-"]');
+                var cuotas = [];
+                oddsElements.forEach(function(o) {
+                    var val = o.innerText.trim();
+                    if (val) cuotas.push(val.replace('\\n', ' '));
                 });
+
                 result.push({
-                    local: names[0].innerText.trim(),
-                    visitante: names[1].innerText.trim(),
-                    cuotas: oddsData,
-                    horario: horarioStr,
-                    texto: c.innerText
+                    local: local,
+                    visitante: visitante,
+                    partido: local + " vs " + visitante,
+                    horario: horario,
+                    cuotas: cuotas,
+                    texto_completo: rawText.replace(/\\n+/g, ' | ')
                 });
             }
         } catch(e) {}
@@ -420,8 +396,9 @@ def fase1_escaneo_superficie(driver):
                             "partido": nombre,
                             "local": e['local'],
                             "visitante": e['visitante'],
-                            "cuotas_superficie": e['cuotas'][:3] if e['cuotas'] else [],
-                            "info_texto": e['texto'][:500]
+                            "horario": e.get('horario', 'Hoy'),
+                            "cuotas_superficie": e.get('cuotas', [])[:4],
+                            "info_texto": f"{cat}: {nombre}. Horario: {e.get('horario', 'Hoy')}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
                         })
                         nuevos += 1
                 print(f"✅ {nuevos} nuevos" if nuevos else "⏭️ sin nuevos")
@@ -430,9 +407,21 @@ def fase1_escaneo_superficie(driver):
     except Exception as e:
         print(f"   ⚠️ Nota en escáner Playdoit: {e}")
     
+    # Si la lista inicial en Playdoit tuviera pocos eventos, consultar la página principal directamente
     if not partidos_data:
-        print("   ℹ️ Escáner de superficie Playdoit no detectó partidos activos de hoy. Activando satélite The Odds API...")
-        partidos_data = obtener_eventos_odds_api()
+        eventos = extract_events_from_page(driver)
+        for e in eventos:
+            nombre = f"{e['local']} vs {e['visitante']}"
+            if not any(x["partido"] == nombre for x in partidos_data):
+                partidos_data.append({
+                    "categoria": "Liga MX / Fútbol",
+                    "partido": nombre,
+                    "local": e['local'],
+                    "visitante": e['visitante'],
+                    "horario": e.get('horario', 'Hoy'),
+                    "cuotas_superficie": e.get('cuotas', [])[:4],
+                    "info_texto": f"{nombre}. Horario: {e.get('horario', 'Hoy')}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
+                })
         
     print(f"\n   📊 Total eventos únicos de HOY/MAÑANA para análisis: {len(partidos_data)}")
     return partidos_data
