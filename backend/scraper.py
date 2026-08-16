@@ -966,6 +966,15 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
                                     p['cuota'] = cuotas_sup[0]
                                 elif dp.get('visitante', '').lower() in p_pick and len(cuotas_sup) >= 3:
                                     p['cuota'] = cuotas_sup[2]
+            
+            # Normalización decimal matemática infalible
+            raw_c = str(p.get('cuota', '1.85')).strip()
+            if raw_c.startswith('+'):
+                try: p['cuota'] = f"{round((float(raw_c[1:]) / 100) + 1, 2):.2f}"
+                except: pass
+            elif raw_c.startswith('-'):
+                try: p['cuota'] = f"{round((100 / float(raw_c[1:])) + 1, 2):.2f}"
+                except: pass
 
         print(f"\n   🏆 CARTERA APROBADA ({len(picks)} selecciones de alta credibilidad):")
         for p in picks:
