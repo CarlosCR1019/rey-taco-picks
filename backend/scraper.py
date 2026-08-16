@@ -141,49 +141,39 @@ def click_tab_hoy(driver):
 
 def click_decimal_toggle(driver):
     """Cambia el formato de cuotas a Decimal en la barra lateral de Playdoit."""
-    script = get_shadow_script() + """
+    script_step1 = get_shadow_script() + """
     try {
         var shadow = getShadow();
         if(!shadow) return false;
-        
-        // 1. Verificar si ya está en Decimal
-        var selects = Array.from(shadow.querySelectorAll('select'));
-        for (var s of selects) {
-            for (var i = 0; i < s.options.length; i++) {
-                if (s.options[i].text.toLowerCase().includes('decimal') || s.options[i].value.toLowerCase().includes('decimal')) {
-                    s.selectedIndex = i;
-                    s.dispatchEvent(new Event('change', { bubbles: true }));
-                    return true;
-                }
-            }
-        }
-        
-        // 2. Buscar dropdowns personalizados con 'Momios formato'
-        var formatContainers = Array.from(shadow.querySelectorAll('div, span, button')).filter(function(el) {
-            return el.innerText && el.innerText.trim().toLowerCase().includes('momios formato');
-        });
-        
-        if (formatContainers.length > 0) {
-            var dropdownTrigger = formatContainers[0].parentElement ? formatContainers[0].parentElement.querySelector('[class*="Select"], [class*="Dropdown"], button') : null;
-            if (dropdownTrigger) {
-                dropdownTrigger.click();
-            }
-        }
-        
-        // 3. Buscar cualquier elemento con texto 'Decimal'
-        var all = Array.from(shadow.querySelectorAll('*'));
-        var decimalBtn = all.find(n => n.textContent && n.textContent.trim().toLowerCase() === 'decimal' && n.children.length === 0);
-        if(decimalBtn) { 
-            decimalBtn.click(); 
-            if (decimalBtn.parentElement) decimalBtn.parentElement.click();
-            return true; 
+        var btn = shadow.querySelector('[class*="OddsFormatBoxOptionName"], [class*="OddsFormat"]');
+        if (btn) {
+            btn.click();
+            if (btn.parentElement) btn.parentElement.click();
+            return true;
         }
         return false;
     } catch(e) { return false; }
     """
-    result = driver.execute_script(script)
-    if result:
-        print("   ✅ Formato de cuotas cambiado a DECIMAL.")
+    driver.execute_script(script_step1)
+    time.sleep(1)
+    
+    script_step2 = get_shadow_script() + """
+    try {
+        var shadow = getShadow();
+        if(!shadow) return false;
+        var all = Array.from(shadow.querySelectorAll('*'));
+        var dec = all.find(n => n.children.length === 0 && n.textContent.trim().toLowerCase() === 'decimal');
+        if (dec) {
+            dec.click();
+            if (dec.parentElement) dec.parentElement.click();
+            return true;
+        }
+        return false;
+    } catch(e) { return false; }
+    """
+    res = driver.execute_script(script_step2)
+    if res:
+        print("   ✅ Formato de cuotas cambiado a DECIMAL en Playdoit.")
     time.sleep(2)
 
 def click_category(driver, category):
@@ -859,17 +849,17 @@ DEBATE DE LOS EXPERTOS:
 --- CUOTAS DE MERCADO GLOBAL ---
 {market_context}
 
-ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON):
-0. REGLA CRÍTICA PRE-MATCH (CERO TOLERANCIA): TODOS LOS PICKS DEBEN SER EXCLUSIVAMENTE PARA PARTIDOS QUE AÚN NO INICIAN (Pre-match para hoy en la tarde/noche o mañana). PROHIBIDO seleccionar partidos en vivo o cuya hora de inicio ya haya transcurrido.
-1. PICKS DE TIROS DE ESQUINA (Córners): SOLO PUEDEN SER DE PARTIDOS DE FÚTBOL (Liga MX, La Liga, Premier, Champions, etc.). Ejemplo: "Atlas vs Tigres | Más de 8.5 Córners". ¡NUNCA EN BÉISBOL!
-2. PICKS DE BÉISBOL (MLB): Deben usar "Carreras" (Runs), "Ponches" (Strikeouts), "Hits" o "Moneyline". Ejemplo: "Astros vs Mariners | Más de 8.5 Carreras" o "Más de 0.5 Carreras en 1er Inning". ¡NUNCA "GOLES" O "CÓRNERS"!
-3. PICKS DE FÚTBOL AMERICANO (NFL): Deben usar "Yardas", "Touchdowns", "Puntos" o "Spread" (SOLO si el partido se juega HOY o MAÑANA; si no hay partidos de NFL hoy/mañana, NO incluyas NFL).
-4. DEBE HABER AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
-   - Parlay 1 ("Parlay Seguro"): 2 selecciones de altísima probabilidad con cuota combinada 2.10 - 2.80. Marcar "es_parlay": true.
-   - Parlay 2 ("Parlay Estadístico Córners/Props" o "Parlay Bomba"): 2-3 selecciones con cuota combinada 3.20 - 6.50. Marcar "es_parlay": true.
-5. CUOTAS EXCLUSIVAMENTE EN FORMATO DECIMAL Y EXTRAÍDAS LITERALMENTE DE PLAYDOIT:
-   - PROHIBIDO INVENTAR O APROXIMAR CUOTAS. Debes copiar EXACTAMENTE la cuota decimal que aparece en los datos reales del mercado de Playdoit (por ejemplo, si en Total Tiros de Esquina dice "Más de 8.5 1.62" o "Más de 9.5 2.05", la cuota debe ser 1.62 o 2.05).
-6. "categoria": "Tiros de Esquina" (SOLO fútbol), "Fútbol", "Béisbol", "Fútbol Americano", "Parlay Seguro", "Parlay Bomba", etc.
+ESTRUCTURA OBLIGATORIA DE LA CARTERA (Total 7 a 9 objetos en JSON con MÁXIMA DIVERSIDAD DE MERCADOS):
+0. REGLA CRÍTICA PRE-MATCH: TODOS LOS PICKS DEBEN SER EXCLUSIVAMENTE PARA PARTIDOS QUE AÚN NO INICIAN (Pre-match para hoy domingo o mañana lunes).
+1. PICKS DE TIROS DE ESQUINA (OBLIGATORIO AL MENOS 2): Selecciona líneas de córners en Liga MX o fútbol europeo (ej. "Atlas vs Tigres | Más de 8.5 Tiros de Esquina @ 1.62" o "Pumas vs Querétaro | Más de 8.5 Córners @ 1.75"). Categoría: "Tiros de Esquina".
+2. PICKS DE GOLES / TOTALES (OBLIGATORIO AL MENOS 2): Selecciona líneas de Over/Under o Ambos Anotan (ej. "América vs San Luis | Más de 2.5 Goles @ 1.66" o "Arsenal vs Manchester City | Ambos Anotan @ 1.70"). Categoría: "Goles / Totales".
+3. PICKS DE DOBLE OPORTUNIDAD / SPREAD (OBLIGATORIO AL MENOS 1): ej. "Cruz Azul Gana o Empata (X2) @ 1.36" o "Chivas Doble Oportunidad @ 1.38". Categoría: "Doble Oportunidad".
+4. PICKS DE BÉISBOL MLB: Usa Carreras Totales o Moneyline (ej. "Braves vs Mets | Más de 8.5 Carreras Totales @ 1.86"). Categoría: "Béisbol".
+5. REGLA ANTI-MONEYLINE OVERUSE: MÁXIMO 2 picks de toda la cartera pueden ser Moneyline / Ganador Directo. El resto DEBE ser de Córners, Goles, Doble Oportunidad o Parlays.
+6. AL MENOS 2 PARLAYS DISTINTOS AL FINAL:
+   - Parlay 1 ("Parlay Seguro"): Combinada de 2 selecciones de alta probabilidad (ej. Córners + Doble Oportunidad) @ 2.10 - 2.85. Marcar "es_parlay": true.
+   - Parlay 2 ("Parlay Estadístico Córners/Props"): Combinada de 2-3 selecciones @ 3.00 - 5.50. Marcar "es_parlay": true.
+7. CUOTAS EXCLUSIVAMENTE DECIMALES EXTRAÍDAS DE PLAYDOIT. Marcar "tiene_valor": true en las mejores selecciones.
 
 Devuelve ÚNICAMENTE un JSON array válido con este formato:
 [
