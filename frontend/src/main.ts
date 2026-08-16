@@ -799,33 +799,48 @@ fetchPicks();
 fetchHistory();
 loadTickets();
 
-function loadTickets() {
+async function loadTickets() {
   const grid = document.getElementById('tickets-grid');
   if (!grid) return;
+  
+  if (supabase) {
+    try {
+      const { data, error } = await supabase.from('tickets_ganadores').select('*').order('id', { ascending: false });
+      if (!error && data && data.length > 0) {
+        const ticketSources = data.map((t: any) => t.imagen_url || `/tickets/${t.archivo}`);
+        renderTickets(ticketSources);
+        return;
+      }
+    } catch (e) {}
+  }
   
   fetch('/tickets/manifest.json')
     .then(r => r.json())
     .then(files => {
       if (Array.isArray(files) && files.length > 0) {
-        renderTickets(files);
+        const ticketSources = files.map(f => f.startsWith('http') ? f : `/tickets/${f}`);
+        renderTickets(ticketSources);
       } else {
-        grid.innerHTML = '<p class="tickets-empty">📸 Envía fotos de tickets ganadores al bot de Telegram y aparecerán aquí automáticamente.</p>';
+        renderTickets(['/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
       }
     })
     .catch(() => {
-      // Fallback a archivos conocidos
-      const fallbackFiles = ['ticket_1786845803.jpg', 'ticket_1786845710.jpg'];
-      renderTickets(fallbackFiles);
+      renderTickets(['/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
     });
 }
 
-function renderTickets(files: string[]) {
+function renderTickets(sources: string[]) {
   const grid = document.getElementById('tickets-grid');
   if (!grid) return;
   
-  grid.innerHTML = files.map(f => `
-    <div class="ticket-card" onclick="openTicketZoom('/tickets/${f}')">
-      <img src="/tickets/${f}" alt="Ticket Ganador" loading="lazy" />
+  if (!sources || sources.length === 0) {
+    grid.innerHTML = '<p class="tickets-empty">📸 Envía fotos de tickets ganadores al bot de Telegram y aparecerán aquí automáticamente.</p>';
+    return;
+  }
+  
+  grid.innerHTML = sources.map(src => `
+    <div class="ticket-card" onclick="openTicketZoom('${src}')">
+      <img src="${src}" alt="Ticket Ganador" loading="lazy" />
     </div>
   `).join('');
 }
