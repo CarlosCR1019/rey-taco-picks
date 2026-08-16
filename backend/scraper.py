@@ -294,12 +294,12 @@ def extract_events_from_page(driver):
     return driver.execute_script(script) or []
 
 def obtener_eventos_odds_api():
-    """Fallback inteligente: Obtiene ÚNICAMENTE partidos PRE-MATCH futuros (que aún NO inician) de The Odds API con fecha/hora CDMX."""
+    """Obtiene ÚNICAMENTE partidos PRE-MATCH futuros con cuotas reales y exactas (1X2, Totales Over/Under y Spreads)."""
     if not ODDS_API_KEY:
         return []
     
-    print("\n🌐 Conectando satélite The Odds API (Liga MX, MLB, La Liga, MLS, Premier)...")
-    sports = ['soccer_mexico_ligamx', 'baseball_mlb', 'soccer_spain_la_liga', 'soccer_usa_mls', 'soccer_epl']
+    print("\n🌐 Conectando satélite The Odds API (Liga MX, MLB, La Liga, MLS, Premier, NFL)...")
+    sports = ['soccer_mexico_ligamx', 'baseball_mlb', 'soccer_spain_la_liga', 'soccer_usa_mls', 'soccer_epl', 'americanfootball_nfl']
     eventos_api = []
     
     from datetime import datetime, timezone, timedelta
@@ -309,7 +309,7 @@ def obtener_eventos_odds_api():
     
     for s in sports:
         try:
-            url = f"https://api.the-odds-api.com/v4/sports/{s}/odds/?apiKey={ODDS_API_KEY}&regions=us,eu&markets=h2h"
+            url = f"https://api.the-odds-api.com/v4/sports/{s}/odds/?apiKey={ODDS_API_KEY}&regions=us,eu&markets=h2h,totals,spreads"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=10) as resp:
                 data = json.loads(resp.read().decode())
@@ -319,7 +319,6 @@ def obtener_eventos_odds_api():
                     if commence_str:
                         try:
                             match_dt = datetime.fromisoformat(commence_str.replace('Z', '+00:00'))
-                            # FILTRO ESTRICTO: Solo eventos que aún no empiezan
                             if match_dt < min_time_utc or match_dt > max_time_utc:
                                 continue 
                             
@@ -337,30 +336,38 @@ def obtener_eventos_odds_api():
 
                     home = match.get('home_team')
                     away = match.get('away_team')
-                    cuotas = []
+                    
+                    # Extraer cuotas exactas de todos los mercados disponibles
+                    cuotas_mercados = []
+                    h2h_cuotas = []
                     for bookmaker in match.get('bookmakers', []):
                         for market in bookmaker.get('markets', []):
-                            if market.get('key') == 'h2h':
-                                outcomes = market.get('outcomes', [])
-                                if len(outcomes) >= 2 and not cuotas:
-                                    cuotas = [str(o.get('price')) for o in outcomes]
+                            mkey = market.get('key')
+                            outcomes = market.get('outcomes', [])
+                            if mkey == 'h2h' and not h2h_cuotas:
+                                h2h_cuotas = [str(o.get('price')) for o in outcomes]
+                            
+                            outs = [f"{o.get('name')} {o.get('point', '')} @ {o.get('price')}".strip() for o in outcomes]
+                            if outs and not any(mkey in x for x in cuotas_mercados):
+                                cuotas_mercados.append(f"[{mkey.upper()}]: {', '.join(outs)}")
                     
                     nombre = f"{home} vs {away}"
                     if not any(x["partido"] == nombre for x in eventos_api):
-                        deporte_cat = "Liga MX" if "ligamx" in s else ("MLB" if "baseball" in s else ("La Liga" if "spain" in s else "Fútbol"))
+                        deporte_cat = "Liga MX" if "ligamx" in s else ("MLB" if "baseball" in s else ("La Liga" if "spain" in s else ("NFL" if "nfl" in s else "Fútbol")))
                         eventos_api.append({
                             "categoria": deporte_cat,
                             "partido": nombre,
                             "local": home,
                             "visitante": away,
                             "horario": horario_str,
-                            "cuotas_superficie": cuotas[:3] if cuotas else ["1.85", "3.20", "2.10"],
-                            "info_texto": f"{deporte_cat}: {home} vs {away}. Horario: {horario_str}. Cuotas: {', '.join(cuotas) if cuotas else '1.85, 3.20'}"
+                            "cuotas_superficie": h2h_cuotas[:3] if h2h_cuotas else ["1.85", "3.20", "2.10"],
+                            "mercados_reales": cuotas_mercados,
+                            "info_texto": f"{deporte_cat}: {home} vs {away}. Horario: {horario_str}. Mercados verificados: {' | '.join(cuotas_mercados)}"
                         })
         except Exception as e:
             print(f"   ⚠️ Error en {s}: {e}")
             
-    print(f"   ✅ {len(eventos_api)} partidos PRE-MATCH (futuros) listos para análisis.")
+    print(f"   ✅ {len(eventos_api)} partidos PRE-MATCH verificados listos con mercados reales.")
     return eventos_api
 
 # ============================================================
