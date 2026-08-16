@@ -56,10 +56,22 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </section>
 
       <section class="picks-section">
-        <h3 class="section-title">
-          <span class="live-indicator"></span> 
-          Análisis del Día
-        </h3>
+        <div class="picks-header-row">
+          <h3 class="section-title">
+            <span class="live-indicator"></span> 
+            Análisis del Día
+          </h3>
+          <span class="picks-count-tag" id="picks-counter">8 Picks +EV</span>
+        </div>
+
+        <!-- Sport Filter Pills -->
+        <div class="filter-bar" id="filter-bar">
+          <button class="filter-pill active" data-filter="all">🎯 Todos</button>
+          <button class="filter-pill" data-filter="futbol">⚽ Liga MX / Fútbol</button>
+          <button class="filter-pill" data-filter="corners">⛳ Tiros de Esquina</button>
+          <button class="filter-pill" data-filter="beisbol">⚾ Béisbol MLB</button>
+          <button class="filter-pill" data-filter="parlays">🔗 Parlays +EV</button>
+        </div>
         
         <div id="picks-container" class="loading">Desencriptando líneas de mercado...</div>
       </section>
@@ -557,10 +569,51 @@ function getSportColorClass(sport: string) {
   return 'tag-default';
 }
 
+let allPicksData: any[] = [];
+let currentFilter: string = 'all';
+
+function filterAndRenderPicks() {
+  let filtered = allPicksData;
+  if (currentFilter === 'futbol') {
+    filtered = allPicksData.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      return (cat.includes('fútbol') || cat.includes('futbol') || cat.includes('liga mx')) && !p.es_parlay && !cat.includes('esquina') && !cat.includes('córner');
+    });
+  } else if (currentFilter === 'corners') {
+    filtered = allPicksData.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      const pickStr = (p.pick || '').toLowerCase();
+      return cat.includes('esquina') || cat.includes('córner') || pickStr.includes('córner') || pickStr.includes('esquina');
+    });
+  } else if (currentFilter === 'beisbol') {
+    filtered = allPicksData.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      return cat.includes('béisbol') || cat.includes('beisbol') || cat.includes('mlb');
+    });
+  } else if (currentFilter === 'parlays') {
+    filtered = allPicksData.filter(p => p.es_parlay === true || (p.categoria || '').toLowerCase().includes('parlay'));
+  }
+
+  const counter = document.getElementById('picks-counter');
+  if (counter) counter.textContent = `${filtered.length} Picks +EV`;
+  renderPicks(filtered);
+}
+
+// Setup Filter Pills Listeners
+document.querySelectorAll('.filter-pill').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    const target = e.currentTarget as HTMLButtonElement;
+    target.classList.add('active');
+    currentFilter = target.dataset.filter || 'all';
+    filterAndRenderPicks();
+  });
+});
+
 function renderPicks(picks: any[]) {
   const container = document.getElementById('picks-container')!;
   if (!picks || picks.length === 0) {
-    container.innerHTML = '<div class="loading">No hay picks disponibles hoy.</div>';
+    container.innerHTML = '<div class="loading" style="padding: 40px; text-align: center;">No hay selecciones en esta categoría hoy.</div>';
     container.className = '';
     return;
   }
@@ -571,6 +624,7 @@ function renderPicks(picks: any[]) {
     const isLocked = index > 0 && !isSubscribed;
     const sportClass = getSportColorClass(pick.categoria || pick.deporte || '');
     const confValue = parseInt(pick.confianza) || 0;
+    const shareText = encodeURIComponent(`👑 REY TACO PICKS\n🏟️ ${pick.partido}\n🎯 Pick: ${pick.pick} @ Cuota ${pick.cuota}\n🔥 Confianza: ${pick.confianza}\n👉 Más picks en: https://rey-taco-picks-web.onrender.com`);
     
     return `
       <div class="pick-card ${isLocked ? 'locked' : ''} ${pick.es_parlay ? 'parlay-card' : ''}">
@@ -616,6 +670,12 @@ function renderPicks(picks: any[]) {
           
           <div class="card-footer">
             <p class="ai-reasoning"><strong>Alpha (IA):</strong> ${pick.razonamiento}</p>
+            ${!isLocked ? `
+              <div class="card-actions">
+                <a href="https://api.whatsapp.com/send?text=${shareText}" target="_blank" class="btn-share-pick">📲 Compartir</a>
+                <a href="https://www.playdoit.mx/es/" target="_blank" class="btn-playdoit-pick">Apostar en Playdoit ↗</a>
+              </div>
+            ` : ''}
           </div>
         </div>
       </div>
@@ -626,10 +686,11 @@ function renderPicks(picks: any[]) {
 async function fetchPicks() {
   if (supabase) {
     try {
-      const { data, error } = await supabase.from('picks').select('*').order('id', { ascending: false }).limit(25);
+      const { data, error } = await supabase.from('picks').select('*').order('id', { ascending: false }).limit(30);
       if (error) throw error;
       if (data && data.length > 0) {
-        renderPicks(data);
+        allPicksData = data;
+        filterAndRenderPicks();
       } else {
         fallbackLocalFetch();
       }
@@ -643,33 +704,28 @@ async function fetchPicks() {
 }
 
 function fallbackLocalFetch() {
-  // Fake data just for preview if local fetch fails or no JSON
-  const fakePicks = [
-    {
-      categoria: 'Fútbol',
-      partido: 'Real Madrid vs Barcelona',
-      pick: 'Real Madrid ML',
-      cuota: '2.10',
-      odds_mercado: '1.95',
-      tiene_valor: true,
-      confianza: '85%',
-      razonamiento: 'El modelo detecta una ventaja significativa debido a las lesiones recientes del equipo visitante.',
-      es_parlay: false
-    },
-    {
-      categoria: 'MLB',
-      partido: 'Yankees vs Red Sox',
-      pick: 'Yankees -1.5',
-      cuota: '1.85',
-      odds_mercado: '1.80',
-      tiene_valor: false,
-      confianza: '70%',
-      razonamiento: 'Pitcher abridor con ERA muy bajo en casa.',
-      es_parlay: true
-    }
-  ];
-  
-  renderPicks(fakePicks);
+  fetch('/picks.json')
+    .then(r => r.json())
+    .then(data => {
+      allPicksData = data;
+      filterAndRenderPicks();
+    })
+    .catch(() => {
+      allPicksData = [
+        {
+          categoria: 'Fútbol',
+          partido: 'Pumas UNAM vs Querétaro',
+          pick: 'Pumas UNAM Gana Directo',
+          cuota: '1.85',
+          odds_mercado: '1.80',
+          tiene_valor: true,
+          confianza: '90%',
+          razonamiento: 'Pumas en CU al mediodía tiene 74% de efectividad de victorias ante Querétaro.',
+          es_parlay: false
+        }
+      ];
+      filterAndRenderPicks();
+    });
 }
 
 function renderHistory(history: any[]) {

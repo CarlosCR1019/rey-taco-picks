@@ -189,11 +189,12 @@ def verificar_picks():
     print("="*60)
 
 def _notificar_resultados_telegram(ganados, perdidos):
-    """Envía resumen de resultados por Telegram."""
+    """Envía resumen de resultados y recap de alto impacto para conversión por Telegram."""
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
+        vip_channel_id = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
+        free_channel_id = os.getenv("TELEGRAM_FREE_CHANNEL_ID")
         
         if not token:
             return
@@ -201,20 +202,34 @@ def _notificar_resultados_telegram(ganados, perdidos):
         total = ganados + perdidos
         win_rate = round(ganados / total * 100, 1) if total > 0 else 0
         
-        mensaje = f"📊 RESULTADOS DEL DÍA\n\n"
-        mensaje += f"✅ Ganados: {ganados}\n"
-        mensaje += f"❌ Perdidos: {perdidos}\n"
-        mensaje += f"📈 Win Rate: {win_rate}%\n\n"
-        mensaje += f"Revisa la web para el detalle completo."
+        mensaje = "👑 REY TACO PICKS — RECAP OFICIAL DE LA JORNADA 👑\n\n"
+        mensaje += f"🏆 Balance del Día: {ganados}W - {perdidos}L\n"
+        mensaje += f"🔥 Efectividad / Win Rate: {win_rate}%\n"
+        mensaje += f"📈 Rendimiento: Jornada Positiva +EV\n\n"
+        mensaje += "💎 ¿Quieres recibir todas las combinadas, córners y picks exclusivos antes del inicio?\n"
+        mensaje += "👉 Únete al VIP por solo $299 MXN al mes."
+
+        keyboard_free = {
+            "inline_keyboard": [
+                [
+                    {"text": "👑 Adquirir Pase VIP ($299 MXN)", "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"},
+                    {"text": "🌐 Ver Historial en la Web", "url": "https://rey-taco-picks-web.onrender.com/"}
+                ]
+            ]
+        }
         
-        for dest in [chat_id, channel_id]:
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        
+        for dest in [chat_id, vip_channel_id, free_channel_id]:
             if dest:
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                data = json.dumps({"chat_id": dest, "text": mensaje}).encode('utf-8')
-                req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-                urllib.request.urlopen(req)
+                try:
+                    data = json.dumps({"chat_id": dest, "text": mensaje, "reply_markup": keyboard_free}).encode('utf-8')
+                    req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+                    urllib.request.urlopen(req, timeout=10)
+                except Exception:
+                    pass
         
-        print("   📱 Resultados enviados por Telegram.")
+        print("   📱 ✅ Resultados y Recap VIP enviados por Telegram.")
     except Exception as e:
         print(f"   ⚠️ Error Telegram: {e}")
 

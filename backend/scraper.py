@@ -1100,31 +1100,52 @@ def _enviar_telegram(picks):
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
 
+        keyboard_vip = {
+            "inline_keyboard": [
+                [
+                    {"text": "📲 Apostar en Playdoit", "url": "https://www.playdoit.mx/es/"},
+                    {"text": "🌐 Dashboard en Vivo", "url": "https://rey-taco-picks-web.onrender.com/"}
+                ]
+            ]
+        }
+
+        keyboard_free = {
+            "inline_keyboard": [
+                [
+                    {"text": "👑 Pase VIP ($299 MXN)", "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"},
+                    {"text": "📲 Apostar en Playdoit", "url": "https://www.playdoit.mx/es/"}
+                ],
+                [
+                    {"text": "🌐 Ver Todos los Picks en la Web", "url": "https://rey-taco-picks-web.onrender.com/"}
+                ]
+            ]
+        }
+
         # Envío a Carlos
         if chat_id:
-            data = json.dumps({"chat_id": chat_id, "text": mensaje_completo}).encode('utf-8')
+            data = json.dumps({"chat_id": chat_id, "text": mensaje_completo, "reply_markup": keyboard_vip}).encode('utf-8')
             req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req) as resp:
                 if resp.getcode() == 200:
-                    print("   📱 ✅ Telegram (privado Carlos) enviado.")
+                    print("   📱 ✅ Telegram (privado Carlos) enviado con botones interactivos.")
 
         # 2. Envío INMEDIATO al CANAL VIP
         if vip_channel_id:
-            data_vip = json.dumps({"chat_id": vip_channel_id, "text": mensaje_completo}).encode('utf-8')
+            data_vip = json.dumps({"chat_id": vip_channel_id, "text": mensaje_completo, "reply_markup": keyboard_vip}).encode('utf-8')
             req_vip = urllib.request.Request(url, data=data_vip, headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req_vip) as resp_vip:
                 if resp_vip.getcode() == 200:
-                    print("   👑 ✅ Telegram (Canal VIP) enviado con cartera completa.")
+                    print("   👑 ✅ Telegram (Canal VIP) enviado con botones interactivos.")
 
         # 3. Envío al CANAL FREE (Pick Estrella Inmediato + Cola Espaciada)
         if free_channel_id and picks:
             # A) Pick #1 Gratuito
             pick_1_msg = formatear_pick_canal(picks[0], numero=1, total=len(picks))
-            data_free = json.dumps({"chat_id": free_channel_id, "text": pick_1_msg}).encode('utf-8')
+            data_free = json.dumps({"chat_id": free_channel_id, "text": pick_1_msg, "reply_markup": keyboard_free}).encode('utf-8')
             req_free = urllib.request.Request(url, data=data_free, headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req_free) as resp_free:
                 if resp_free.getcode() == 200:
-                    print(f"   📢 ✅ Telegram (Canal FREE - Pick #1) enviado: {picks[0].get('partido')}")
+                    print(f"   📢 ✅ Telegram (Canal FREE - Pick #1) enviado con botones: {picks[0].get('partido')}")
 
             # B) Programar los picks restantes espaciados cada 75 min para el Canal Free
             queue_file = os.path.join(os.path.dirname(__file__), "channel_queue.json")
@@ -1140,6 +1161,7 @@ def _enviar_telegram(picks):
                     "timestamp_programado": prog_time,
                     "fecha_legible": time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(prog_time)),
                     "mensaje": formatear_pick_canal(p, numero=i, total=len(picks)),
+                    "reply_markup": keyboard_free,
                     "enviado": False
                 })
                 
