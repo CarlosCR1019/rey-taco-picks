@@ -622,111 +622,75 @@ def fase4_inmersion(driver, objetivos, partidos_data):
         
         print(f"\n   [{i}/{len(objetivos)}] Infiltrando: {obj}")
         
-        driver.get("https://www.playdoit.mx/es/")
-        time.sleep(3)
-        click_tab_hoy(driver)
-        click_decimal_toggle(driver)
-        
-        # Clic en categoría
-        click_category(driver, base['categoria'])
-        time.sleep(3)
-        
-        # Clic en el partido específico dentro del Shadow DOM
+        # Clic directo en el partido dentro del Shadow DOM (sin recargar la página completa)
         script_click = f"""
         try {{
-            var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
-            if (!host) return false;
+            var host = document.querySelector('div#altenar > div') || document.querySelector('asb-sports-app, asb-app, altenar-app');
+            if (!host || !host.shadowRoot) return false;
             var shadow = host.shadowRoot;
-            var names = shadow.querySelectorAll('div[class*="CompetitorName-"], [class*="CompetitorsContainer"]');
-            var match = Array.from(names).find(n => n.innerText && n.innerText.toLowerCase().includes("{base['local'].lower()}"));
-            if(match) {{ 
-                match.click(); 
-                if (match.parentElement) match.parentElement.click();
+            
+            var containers = Array.from(shadow.querySelectorAll('div[class*="EventBoxContainer"]'));
+            var targetContainer = containers.find(function(c) {{
+                var t = c.innerText.toLowerCase();
+                return t.includes("{base['local'].lower()}") || t.includes("{base['visitante'].lower()}");
+            }});
+            
+            if(targetContainer) {{ 
+                var clickEl = targetContainer.querySelector('div[class*="Competitors"], div[class*="EventName"], [class*="CompetitorName"]') || targetContainer;
+                clickEl.click();
                 return true; 
             }}
             return false;
         }} catch(e) {{ return false; }}
         """
         
-        if driver.execute_script(script_click):
-            time.sleep(4)
+        clicked = driver.execute_script(script_click)
+        if not clicked:
+            # Reintentar navegando si estaba en otra vista
+            click_category(driver, base.get('categoria', 'Liga MX'))
+            time.sleep(2)
+            clicked = driver.execute_script(script_click)
             
-            # PASO A: Extraer Pestaña 'Insights' (Rachas, Tendencias Estadísticas y Desajustes)
-            script_extract_insights = """
+        if clicked:
+            time.sleep(3)
+            
+            # PASO A: Extraer Pestañas Profundas (Tiros de Esquina, Goles, Tarjetas, Jugador)
+            script_extract_deep = """
             try {
-                var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
-                if (!host) return "";
+                var host = document.querySelector('div#altenar > div') || document.querySelector('asb-sports-app, asb-app, altenar-app');
+                if (!host || !host.shadowRoot) return "";
                 var shadow = host.shadowRoot;
                 
-                // Clic en pestaña 'Insights' si existe
-                var insightsBtn = Array.from(shadow.querySelectorAll('button, [role="tab"]')).find(function(b) {
-                    return b.innerText && b.innerText.trim().toLowerCase() === 'insights';
-                });
-                
-                if (insightsBtn) {
-                    insightsBtn.click();
-                }
-                
-                var cards = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="MarketBoxContainer"] > div'));
-                var insightsList = [];
-                
-                cards.forEach(function(card) {
-                    var textEls = Array.from(card.querySelectorAll('div, p, span')).filter(function(el) {
-                        var txt = el.innerText ? el.innerText.trim() : '';
-                        return (txt.includes('últimos') || txt.includes('partidos') || txt.includes('concedido') || txt.includes('ganado') || txt.includes('perdido') || txt.includes('convertido')) && el.children.length === 0;
-                    });
-                    
-                    var buttons = Array.from(card.querySelectorAll('button')).map(function(b) {
-                        return b.innerText.trim().replace(/\\n+/g, ' ');
-                    });
-                    
-                    if (textEls.length > 0 && buttons.length > 0) {
-                        insightsList.push("💡 TENDENCIA INSIGHT: " + textEls.map(function(t) { return t.innerText.trim(); }).join(" ") + " [Cuotas: " + buttons.join(" | ") + "]");
-                    }
-                });
-                
-                return insightsList.join("\\n");
-            } catch(e) { return ""; }
-            """
-            
-            insights_texto = driver.execute_script(script_extract_insights) or ""
-            if insights_texto:
-                print(f"      👁️ {len(insights_texto.splitlines())} Insights estadísticos y rachas capturadas.")
-            
-            # PASO B: Clic en 'Todas' o 'Crear Apuesta' para extraer mercados profundos
-            script_extract_deep_markets = """
-            try {
-                var host = Array.from(document.querySelectorAll('*')).find(el => el.shadowRoot);
-                if (!host) return "";
-                var shadow = host.shadowRoot;
-                
-                // Iterar sobre pestañas clave: Todas, Tiros esquina, Goles, Tarjetas
-                var tabsToClick = ['todas', 'tiros esquina', 'goles', 'tarjetas', 'combinación'];
-                var allTabs = Array.from(shadow.querySelectorAll('button, [role="tab"]'));
+                var tabsToExplore = ['tiros esquina', 'goles', 'tarjetas', 'especiales por jugador', 'crear apuesta'];
+                var allNodes = Array.from(shadow.querySelectorAll('*'));
                 var marketSummary = [];
                 
-                tabsToClick.forEach(function(tabName) {
-                    var tabBtn = allTabs.find(function(b) {
-                        return b.innerText && b.innerText.trim().toLowerCase().includes(tabName);
+                tabsToExplore.forEach(function(tabName) {
+                    var tabEl = allNodes.find(function(n) {
+                        return n.children.length === 0 && n.textContent && n.textContent.trim().toLowerCase().includes(tabName);
                     });
-                    if (tabBtn) {
-                        try { tabBtn.click(); } catch(e) {}
+                    if (tabEl) {
+                        try {
+                            tabEl.click();
+                            if (tabEl.parentElement) tabEl.parentElement.click();
+                        } catch(e) {}
                     }
                     
-                    var marketBoxes = Array.from(shadow.querySelectorAll('[class*="EventDetailsMarketBoxRoot"], [class*="EventDetailsMarketBoxContainer"], [class*="MarketBoxContainer"]'));
-                    marketBoxes.forEach(function(box) {
-                        var nameEl = box.querySelector('[class*="EventDetailsMarketName"], [class*="MarketName"]');
-                        var marketName = nameEl ? nameEl.innerText.trim() : "";
-                        if (!marketName) return;
+                    var boxes = Array.from(shadow.querySelectorAll('[class*="MarketBox"], [class*="EventDetailsMarketBox"]'));
+                    boxes.forEach(function(box) {
+                        var titleEl = box.querySelector('[class*="MarketName"], [class*="Title"], [class*="HeaderMarket"]');
+                        var title = titleEl ? titleEl.innerText.trim() : box.innerText.split('\\n')[0];
                         
-                        var oddButtons = Array.from(box.querySelectorAll('button, [class*="OddBoxButton"]'));
-                        var oddsList = oddButtons.map(function(btn) {
-                            return btn.innerText.replace(/\\n+/g, ' ').trim();
+                        var buttons = Array.from(box.querySelectorAll('button, [class*="OddBoxButton"], [class*="SelectionButton"]'));
+                        var odds = buttons.map(function(b) {
+                            return b.innerText.replace(/\\n+/g, ' ').trim();
                         }).filter(Boolean);
                         
-                        var entry = "▶ MERCADO [" + marketName + "]: " + oddsList.join(" | ");
-                        if (oddsList.length > 0 && !marketSummary.includes(entry)) {
-                            marketSummary.push(entry);
+                        if (odds.length > 0) {
+                            var entry = "▶ MERCADO [" + title + "]: " + odds.join(" | ");
+                            if (!marketSummary.includes(entry)) {
+                                marketSummary.push(entry);
+                            }
                         }
                     });
                 });
@@ -735,21 +699,32 @@ def fase4_inmersion(driver, objetivos, partidos_data):
             } catch(e) { return ""; }
             """
             
-            mercados_texto = driver.execute_script(script_extract_deep_markets) or ""
-            
-            contenido_completo = ""
-            if insights_texto:
-                contenido_completo += "--- TENDENCIAS INSIGHTS DE PLAYDOIT ---\n" + insights_texto + "\n\n"
+            mercados_texto = driver.execute_script(script_extract_deep) or ""
             if mercados_texto:
-                contenido_completo += "--- MERCADOS PROFUNDOS & CÓRNERS ---\n" + mercados_texto
+                print(f"      🎯 {len(mercados_texto.splitlines())} Mercados profundos extraídos (Córners, Goles, Tarjetas).")
+            
+            # Regresar al listado general haciendo clic en el botón 'Volver' o pestaña principal
+            script_back = """
+            try {
+                var host = document.querySelector('div#altenar > div') || document.querySelector('asb-sports-app, asb-app, altenar-app');
+                if (host && host.shadowRoot) {
+                    var backBtn = host.shadowRoot.querySelector('button[class*="BackButton"], [class*="HeaderBack"]');
+                    if (backBtn) backBtn.click();
+                }
+            } catch(e) {}
+            """
+            driver.execute_script(script_back)
+            time.sleep(1)
             
             datos_profundos.append({
                 "categoria": base['categoria'],
                 "partido": obj,
+                "local": base.get('local', ''),
+                "visitante": base.get('visitante', ''),
+                "horario": base.get('horario', 'Hoy'),
                 "cuotas_superficie": base.get('cuotas_superficie', []),
-                "mercados_profundos": contenido_completo[:7000]
+                "mercados_profundos": mercados_texto[:8000]
             })
-            print(f"      ✅ {len(contenido_completo[:7000])} caracteres de Insights + Mercados extraídos.")
         else:
             print(f"      ⚠️ No se pudo entrar al partido, usando cuotas de superficie.")
             datos_profundos.append(base)
@@ -1005,17 +980,39 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                 continue
             p['horario'] = horario_limpio
             
-            # 3. Limpieza y Normalización Matemática de Cuota
+            # 3. Extraer cuota exacta de la línea de Playdoit (Córners, Goles, etc.)
+            if match_encontrado:
+                mercados = match_encontrado.get('mercados_profundos', '')
+                p_pick_lower = p.get('pick', '').lower()
+                
+                if 'córner' in p_pick_lower or 'esquina' in p_pick_lower or 'gol' in p_pick_lower or 'carrera' in p_pick_lower:
+                    match_line = re.search(r'(\d+\.5)', p_pick_lower)
+                    if match_line:
+                        num_line = match_line.group(1)
+                        tipo = "menos" if ("menos" in p_pick_lower or "under" in p_pick_lower) else "m[aá]s"
+                        pattern = rf'(?:{tipo}\s+de)\s+{re.escape(num_line)}\s+([+-]?\d+(?:\.\d+)?)'
+                        found = re.search(pattern, mercados, re.IGNORECASE)
+                        if found:
+                            p['cuota'] = found.group(1)
+                elif ('gana' in p_pick_lower or 'ml' in p_pick_lower) and not p.get('es_parlay'):
+                    cuotas_sup = match_encontrado.get('cuotas_superficie', [])
+                    if len(cuotas_sup) >= 1:
+                        if 'local' in p_pick_lower or match_encontrado.get('local', '').lower() in p_pick_lower:
+                            p['cuota'] = cuotas_sup[0]
+                        elif len(cuotas_sup) >= 3 and ('visitante' in p_pick_lower or match_encontrado.get('visitante', '').lower() in p_pick_lower):
+                            p['cuota'] = cuotas_sup[2]
+
+            # 4. Limpieza y Normalización Matemática de Cuota
             raw_c = str(p.get('cuota', '1.85')).strip()
-            # Extraer posibles formatos americanos como "-267 Tigres UANL" -> -267
+            # Extraer posibles formatos americanos como "-145" o "-250" -> 1.68 o 1.40
             match_odd = re.search(r'([+-]?\d+(?:\.\d+)?)', raw_c)
             if match_odd:
                 val_odd_str = match_odd.group(1)
                 try:
                     val_odd = float(val_odd_str)
-                    if val_odd > 50:  # Momio positivo americano ej +150 -> 2.50
+                    if val_odd > 50:  # Momio positivo americano ej +115 -> 2.15
                         p['cuota'] = f"{round((val_odd / 100) + 1, 2):.2f}"
-                    elif val_odd < -50:  # Momio negativo americano ej -267 -> 1.37
+                    elif val_odd < -50:  # Momio negativo americano ej -145 -> 1.68
                         p['cuota'] = f"{round((100 / abs(val_odd)) + 1, 2):.2f}"
                     elif val_odd >= 1.01:
                         p['cuota'] = f"{val_odd:.2f}"
