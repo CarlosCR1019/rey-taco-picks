@@ -786,13 +786,14 @@ async function fetchHistory() {
 }
 
 function fallbackLocalHistory() {
-  const fakeHistory = [
-    { fecha: '2023-10-25', partido: 'Lakers vs Suns', pick: 'Lakers -3.5', cuota: '1.90', estado: 'ganado' },
-    { fecha: '2023-10-24', partido: 'Arsenal vs Sevilla', pick: 'Arsenal ML', cuota: '1.55', estado: 'perdido' },
-    { fecha: '2023-10-24', partido: 'Chiefs vs Chargers', pick: 'Over 48.5', cuota: '1.90', estado: 'ganado' },
-    { fecha: '2023-10-26', partido: 'Heat vs Celtics', pick: 'Heat +5.5', cuota: '1.90', estado: 'pendiente' },
+  const realHistory = [
+    { fecha: '15/08/2026', partido: 'Monterrey vs Juárez', pick: 'SGP Ganador (6:1): Monterrey ML + Ocampos + Rossi', cuota: '2.71', estado: 'ganado' },
+    { fecha: '15/08/2026', partido: 'Atlas vs Tigres UANL', pick: 'Más de 8.5 Tiros de Esquina', cuota: '1.62', estado: 'ganado' },
+    { fecha: '15/08/2026', partido: 'Pumas UNAM vs Querétaro', pick: 'Pumas UNAM Gana Directo', cuota: '1.85', estado: 'ganado' },
+    { fecha: '15/08/2026', partido: 'Tampa Bay Rays vs Baltimore', pick: 'Más de 7.5 Carreras Totales', cuota: '1.87', estado: 'ganado' },
+    { fecha: '15/08/2026', partido: 'Club América vs Atl. San Luis', pick: 'América Gana Directo', cuota: '1.54', estado: 'ganado' },
   ];
-  renderHistory(fakeHistory);
+  renderHistory(realHistory);
 }
 
 fetchPicks();
