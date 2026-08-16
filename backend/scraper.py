@@ -622,7 +622,7 @@ def fase4_inmersion(driver, objetivos, partidos_data):
         
         print(f"\n   [{i}/{len(objetivos)}] Infiltrando: {obj}")
         
-        # Clic directo en el partido dentro del Shadow DOM (sin recargar la página completa)
+        # Clic confiable con mouse dispatch en el partido dentro del Shadow DOM
         script_click = f"""
         try {{
             var host = document.querySelector('div#altenar > div') || document.querySelector('asb-sports-app, asb-app, altenar-app');
@@ -636,8 +636,10 @@ def fase4_inmersion(driver, objetivos, partidos_data):
             }});
             
             if(targetContainer) {{ 
-                var clickEl = targetContainer.querySelector('div[class*="Competitors"], div[class*="EventName"], [class*="CompetitorName"]') || targetContainer;
-                clickEl.click();
+                var clickEl = targetContainer.querySelector('div[class*="Competitors"], div[class*="NameContainer"], div[class*="EventName"], [class*="CompetitorName"]') || targetContainer;
+                ['mousedown', 'click', 'mouseup'].forEach(function(evtType) {{
+                    clickEl.dispatchEvent(new MouseEvent(evtType, {{ bubbles: true, cancelable: true, view: window }}));
+                }});
                 return true; 
             }}
             return false;
