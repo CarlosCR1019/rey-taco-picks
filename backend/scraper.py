@@ -123,21 +123,30 @@ def get_shadow_script():
     """
 
 def click_tab_hoy(driver):
-    """Hace clic en la pestaña 'Hoy' para filtrar solo eventos del día."""
+    """Hace clic en la pestaña 'Hoy' para filtrar solo eventos del día (evita deseleccionar si ya está activo)."""
     script = get_shadow_script() + """
     try {
         var shadow = getShadow();
         if(!shadow) return false;
         var tabs = Array.from(shadow.querySelectorAll('*'));
-        var hoyTab = tabs.find(n => n.textContent.trim() === 'Hoy' && n.children.length === 0);
-        if(hoyTab) { hoyTab.click(); return true; }
+        var hoyTab = tabs.find(n => n.textContent.trim().toLowerCase() === 'hoy' && n.children.length === 0);
+        if(hoyTab) {
+            var parent = hoyTab.parentElement || hoyTab;
+            var isAlreadyActive = parent.classList.contains('active') || parent.classList.contains('selected') || parent.getAttribute('aria-selected') === 'true';
+            if (!isAlreadyActive) {
+                hoyTab.click();
+                if (hoyTab.parentElement) hoyTab.parentElement.click();
+                return true;
+            }
+            return true;
+        }
         return false;
     } catch(e) { return false; }
     """
     result = driver.execute_script(script)
     if result:
         print("   ✅ Filtro 'Hoy' activado.")
-    time.sleep(3)
+    time.sleep(2)
 
 def click_decimal_toggle(driver):
     """Cambia el formato de cuotas a Decimal en la barra lateral de Playdoit."""
@@ -438,7 +447,6 @@ def fase1_escaneo_superficie(driver):
             if eventos_iniciales:
                 break
             time.sleep(2)
-            click_tab_hoy(driver)
             
         print(f"   📡 Cartelera 'Hoy' detectada con {len(eventos_iniciales)} eventos principales.")
         for e in eventos_iniciales:
