@@ -424,15 +424,22 @@ def fase1_escaneo_superficie(driver):
     partidos_data = []
     try:
         driver.get("https://www.playdoit.mx/es/")
-        time.sleep(8)
+        time.sleep(6)
         
         # Configuración inicial: Formato Decimal y Pestaña 'Hoy'
         click_decimal_toggle(driver)
         click_tab_hoy(driver)
-        time.sleep(3)
+        time.sleep(2)
         
-        # 1. Escaneo inicial directo de la cartelera principal de HOY
-        eventos_iniciales = extract_events_from_page(driver)
+        # Esperar hasta que Altenar termine de renderizar los eventos en pantalla
+        eventos_iniciales = []
+        for intento_carga in range(6):
+            eventos_iniciales = extract_events_from_page(driver)
+            if eventos_iniciales:
+                break
+            time.sleep(2)
+            click_tab_hoy(driver)
+            
         print(f"   📡 Cartelera 'Hoy' detectada con {len(eventos_iniciales)} eventos principales.")
         for e in eventos_iniciales:
             nombre = f"{e['local']} vs {e['visitante']}"
