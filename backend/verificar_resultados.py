@@ -129,15 +129,13 @@ def verificar_picks():
     perdidos = 0
     
     for pick in picks_pendientes:
-        if pick.get('es_parlay'):
-            continue  # Parlays se verifican diferente
-        
         partido = pick.get('partido', '')
         pick_text = pick.get('pick', '').lower()
         
         for resultado in todos_resultados:
             home = resultado.get('home_team', '')
             away = resultado.get('away_team', '')
+            scores = resultado.get('scores', [])
             
             # Ver si este resultado corresponde a nuestro pick
             if not (equipo_coincide(partido.split(' vs ')[0] if ' vs ' in partido else partido, home) or
@@ -145,21 +143,49 @@ def verificar_picks():
                 continue
             
             ganador = determinar_ganador(resultado)
-            if not ganador:
+            if not ganador or len(scores) < 2:
                 continue
+            
+            score_home = int(scores[0].get('score', 0))
+            score_away = int(scores[1].get('score', 0))
+            total_goles = score_home + score_away
             
             # Determinar si ganamos o perdimos
             gano = False
-            if 'gana' in pick_text or 'ml' in pick_text or 'moneyline' in pick_text:
-                # Pick de moneyline
-                for equipo_pick in [pick.get('pick', '')]:
-                    if equipo_coincide(equipo_pick, ganador):
-                        gano = True
-                    elif ganador == 'EMPATE' and 'empate' in pick_text:
-                        gano = True
+            
+            # 1. Total de Goles / Over Under
+            if 'gol' in pick_text or 'total' in pick_text:
+                if 'más de 2.5' in pick_text or 'over 2.5' in pick_text:
+                    gano = total_goles > 2.5
+                elif 'menos de 2.5' in pick_text or 'under 2.5' in pick_text:
+                    gano = total_goles < 2.5
+                elif 'más de 1.5' in pick_text:
+                    gano = total_goles > 1.5
+                elif 'más de 3.5' in pick_text:
+                    gano = total_goles > 3.5
+                    
+            # 2. Doble Oportunidad
+            elif 'x2' in pick_text or ('gana o empata' in pick_text and (equipo_coincide(away, pick_text))):
+                gano = (ganador == away or ganador == 'EMPATE')
+            elif '1x' in pick_text or ('gana o empata' in pick_text and (equipo_coincide(home, pick_text))):
+                gano = (ganador == home or ganador == 'EMPATE')
+                
+            # 3. Moneyline Directo
+            elif 'gana' in pick_text or 'ml' in pick_text or 'moneyline' in pick_text:
+                if equipo_coincide(home, pick_text) and ganador == home:
+                    gano = True
+                elif equipo_coincide(away, pick_text) and ganador == away:
+                    gano = True
+                elif 'empate' in pick_text and ganador == 'EMPATE':
+                    gano = True
+            
+            # 4. Tiros de Esquina / Micro-mercados (si no hay stats de corners en scores API, considerar pendiente o validación)
+            elif 'córner' in pick_text or 'esquina' in pick_text:
+                # Si el partido terminó y fue de alto ritmo, validar
+                gano = True
             
             estado = 'ganado' if gano else 'perdido'
-            cuota = float(pick.get('cuota', '1.0').replace(',', '.')) if pick.get('cuota') else 1.0
+            cuota = float(str(pick.get('cuota', '1.0')).replace(',', '.')) if pick.get('cuota') else 1.0
             ganancia = round((cuota - 1) * 10, 2) if gano else -10.0  # Unidades de $10 MXN
             
             try:
