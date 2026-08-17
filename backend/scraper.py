@@ -433,16 +433,17 @@ def fase1_escaneo_superficie(driver):
     partidos_data = []
     try:
         driver.get("https://www.playdoit.mx/es/")
-        time.sleep(6)
+        time.sleep(8)
         
         # Configuración inicial: Formato Decimal y Pestaña 'Hoy'
         click_decimal_toggle(driver)
+        time.sleep(1)
         click_tab_hoy(driver)
-        time.sleep(2)
+        time.sleep(3)
         
         # Esperar hasta que Altenar termine de renderizar los eventos en pantalla
         eventos_iniciales = []
-        for intento_carga in range(6):
+        for intento_carga in range(5):
             eventos_iniciales = extract_events_from_page(driver)
             if eventos_iniciales:
                 break
