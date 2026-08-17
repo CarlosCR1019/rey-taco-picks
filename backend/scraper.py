@@ -538,8 +538,9 @@ def fase2_comparacion_mercado(partidos_data):
 def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
     """Ejecuta la llamada a Groq rotando inteligentemente con reintentos y pausa backoff."""
     modelos = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant"
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "groq/compound-mini"
     ]
     for intento in range(2):
         for modelo in modelos:
