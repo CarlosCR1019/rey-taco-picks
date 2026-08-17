@@ -899,12 +899,12 @@ async function fetchHistory() {
 
 function fallbackLocalHistory() {
   const realHistory = [
-    { fecha: '2026-08-15', partido: 'América vs San Luis + Santos vs Chivas', pick: 'América Gana o Empata & Santos Laguna Gana', cuota: '3.20', estado: 'ganado' },
-    { fecha: '2026-08-15', partido: 'Monterrey vs Juárez', pick: 'SGP Ganador (6:1): Monterrey ML + Ocampos + Rossi', cuota: '2.71', estado: 'ganado' },
-    { fecha: '2026-08-15', partido: 'Pumas UNAM vs Querétaro', pick: 'Pumas UNAM Gana Directo', cuota: '1.85', estado: 'ganado' },
-    { fecha: '2026-08-15', partido: 'Tampa Bay Rays vs Baltimore Orioles', pick: 'Más de 7.5 Carreras Totales', cuota: '1.87', estado: 'ganado' },
-    { fecha: '2026-08-15', partido: 'Atlas vs Tigres UANL', pick: 'Más de 8.5 Tiros de Esquina', cuota: '1.62', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Monterrey vs Juárez', pick: 'SGP Ganador Playdoit: Monterrey ML + Ocampos + Rossi', cuota: '2.71', estado: 'ganado' },
     { fecha: '2026-08-15', partido: 'Club América vs Atlético San Luis', pick: 'América Gana Directo', cuota: '1.54', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Santos Laguna vs Guadalajara Chivas', pick: 'Guadalajara Chivas Gana Directo', cuota: '1.52', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Atlas vs Tigres UANL', pick: 'Más de 8.5 Tiros de Esquina', cuota: '1.62', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Tampa Bay Rays vs Baltimore Orioles', pick: 'Más de 7.5 Carreras Totales', cuota: '1.87', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Kansas City Chiefs vs Denver Broncos', pick: 'Kansas City Chiefs Gana Directo', cuota: '1.26', estado: 'ganado' },
   ];
   renderHistory(realHistory);
 }
