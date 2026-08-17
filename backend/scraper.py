@@ -1300,11 +1300,11 @@ def _enviar_telegram(picks):
             razon = f"\n   🧠 _¿Por qué?_ {p.get('razonamiento')}" if p.get('razonamiento') else ""
             msg_privado += f"• *[{p.get('categoria')}]{parlay}{valor}*\n  🏟️ {p.get('partido')}{horario}\n  👉 *Pick:* `{p.get('pick')}` @ *{p.get('cuota')}*\n  📊 Confianza: *{p.get('confianza', '90%')}*{razon}\n\n"
         
-        msg_privado += "🌐 *Ver en Web:* https://rey-taco-picks-web.onrender.com"
+        msg_privado += "🌐 *Ver en Web:* https://reytacopicks.com"
         
         reply_markup = {
             "inline_keyboard": [
-                [{"text": "🌐 Ver en Rey Taco Picks Web", "url": "https://rey-taco-picks-web.onrender.com"}],
+                [{"text": "🌐 Ver en Rey Taco Picks Web", "url": "https://reytacopicks.com"}],
                 [{"text": "📲 Apostar en Playdoit", "url": "https://www.playdoit.mx/es/"}]
             ]
         }
@@ -1321,7 +1321,7 @@ def _enviar_telegram(picks):
                 razon = f"\n   🧠 _Análisis:_ {p.get('razonamiento')}" if p.get('razonamiento') else ""
                 msg_vip += f"💎 *[{p.get('categoria')}]{parlay}*\n🏟️ {p.get('partido')}{horario}\n🎯 *Pick:* `{p.get('pick')}` @ *{p.get('cuota')}*{razon}\n\n"
             
-            msg_vip += "🚀 *Apostar en Playdoit:* https://www.playdoit.mx/es/\n🌐 *Plataforma:* https://rey-taco-picks-web.onrender.com"
+            msg_vip += "🚀 *Apostar en Playdoit:* https://www.playdoit.mx/es/\n🌐 *Plataforma:* https://reytacopicks.com"
             _post_telegram(token, vip_channel_id, msg_vip, reply_markup)
             print("   👑 ✅ Telegram (Canal VIP) enviado.")
 
@@ -1337,7 +1337,7 @@ def _enviar_telegram(picks):
                 if p.get('razonamiento'):
                     msg_free += f"🧠 *¿Por qué este pick?:*\n{p.get('razonamiento')}\n\n"
                 msg_free += "🔒 _Accede a los demás picks y al Parlay IA en el VIP_\n"
-                msg_free += "👑 *Únete al VIP:* @carlosds1017\n🌐 https://rey-taco-picks-web.onrender.com"
+                msg_free += "👑 *Únete al VIP:* @carlosds1017\n🌐 https://reytacopicks.com"
                 
                 _post_telegram(token, free_channel_id, msg_free, reply_markup)
                 print(f"   📢 ✅ Telegram (Canal FREE - Pick #{i+1}) enviado: {p.get('partido')}")
