@@ -44,6 +44,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <!-- Daily Blessing / Psalm Banner -->
     <div id="daily-verse-container"></div>
 
+    <!-- Official Playdoit Affiliate & Bonus Promo Banner -->
+    <section class="affiliate-banner-box">
+      <div class="affiliate-badge">🎁 OFERTA EXCLUSIVA PLAYDOIT x REY TACO</div>
+      <div class="affiliate-content">
+        <div class="affiliate-text">
+          <h3>Duplica tu 1er Depósito hasta <strong>$3,500 MXN</strong> + <strong>$500 MXN</strong> de Bienvenida</h3>
+          <p>Juega los picks de Rey Taco Picks con momios mejorados, pago anticipado y retiro instantáneo en Playdoit México.</p>
+        </div>
+        <a href="https://www.playdoit.mx/es/" target="_blank" class="btn-claim-bonus">Reclamar Bono en Playdoit ↗</a>
+      </div>
+    </section>
+
     <main>
       <section class="stats-bar">
         <div class="stat-card">
@@ -66,7 +78,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             <span class="live-indicator"></span> 
             Análisis del Día
           </h3>
-          <span class="picks-count-tag" id="picks-counter">8 Picks +EV</span>
+          <span class="picks-count-tag" id="picks-counter">6 Picks +EV</span>
         </div>
 
         <!-- Sport Filter Pills -->
@@ -80,6 +92,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         
         <div id="picks-container" class="loading">Desencriptando líneas de mercado...</div>
       </section>
+
+      <!-- Monetization Ad Slot (In-Feed) -->
+      <div class="ad-container" id="ad-slot-feed">
+        <span class="ad-label">PUBLICIDAD / ANUNCIO PATROCINADO</span>
+        <div class="ad-box-placeholder">
+          <div class="ad-fallback-content">
+            <span class="ad-fallback-icon">🎯</span>
+            <span>Espacio Publicitario Disponible • Anúnciate ante miles de apostadores en Rey Taco Picks</span>
+            <a href="https://t.me/carlosds1017" target="_blank" class="btn-ad-contact">Contactar Anuncios</a>
+          </div>
+        </div>
+      </div>
 
       <section class="chart-section">
         <h3 class="section-title">📊 Rendimiento</h3>
