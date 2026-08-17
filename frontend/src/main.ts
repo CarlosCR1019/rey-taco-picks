@@ -742,7 +742,7 @@ function renderPicks(picks: any[]) {
     const isLocked = index > 0 && !isSubscribed;
     const sportClass = getSportColorClass(pick.categoria || pick.deporte || '');
     const confValue = parseInt(pick.confianza) || 0;
-    const shareText = encodeURIComponent(`👑 REY TACO PICKS\n🏟️ ${pick.partido}\n🎯 Pick: ${pick.pick} @ Cuota ${pick.cuota}\n🔥 Confianza: ${pick.confianza}\n👉 Más picks en: https://rey-taco-picks-web.onrender.com`);
+    const shareText = encodeURIComponent(`👑 REY TACO PICKS\n🏟️ ${pick.partido}\n🎯 Pick: ${pick.pick} @ Cuota ${pick.cuota}\n🔥 Confianza: ${pick.confianza}\n👉 Más picks en: https://reytacopicks.com`);
     
     return `
       <div class="pick-card ${isLocked ? 'locked' : ''} ${pick.es_parlay ? 'parlay-card' : ''}">
@@ -1415,7 +1415,7 @@ if (btnCopyParlaySlip) {
     if (!currentGeneratedParlay) return;
     const text = `🌮 *REY TACO PICKS - PARLAY IA A MEDIDA* 👑\n\n` +
       currentGeneratedParlay.legs.map((l: any, i: number) => `📍 Pierna #${i+1}: ${l.partido}\n   👉 Pick: ${l.seleccion} @ ${l.cuota.toFixed(2)}`).join('\n\n') +
-      `\n\n💰 *Cuota Total:* @ ${currentGeneratedParlay.totalOdd}\n💵 *Apostando:* $${currentGeneratedParlay.stake} MXN -> 🚀 *Cobras:* $${currentGeneratedParlay.payout} MXN\n\n📲 *Entra y Juégalo en Playdoit:* https://www.playdoit.mx/es/\n🌐 https://rey-taco-picks-web.onrender.com`;
+      `\n\n💰 *Cuota Total:* @ ${currentGeneratedParlay.totalOdd}\n💵 *Apostando:* $${currentGeneratedParlay.stake} MXN -> 🚀 *Cobras:* $${currentGeneratedParlay.payout} MXN\n\n📲 *Entra y Juégalo en Playdoit:* https://www.playdoit.mx/es/\n🌐 https://reytacopicks.com`;
 
     navigator.clipboard.writeText(text).then(() => {
       btnCopyParlaySlip.textContent = '✅ ¡Copiado!';
