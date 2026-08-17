@@ -949,14 +949,28 @@ async function loadTickets() {
     .then(r => r.json())
     .then(files => {
       if (Array.isArray(files) && files.length > 0) {
-        const ticketSources = files.map(f => f.startsWith('http') ? f : `/tickets/${f}`);
+        // Filtrar y deduplicar estrictamente
+        const uniqueFiles = Array.from(new Set(files));
+        const ticketSources = uniqueFiles.map((f: any) => f.startsWith('http') ? f : `/tickets/${f}`);
         renderTickets(ticketSources);
       } else {
-        renderTickets(['/tickets/ticket_1786980544.jpg', '/tickets/ticket_1786980498.jpg', '/tickets/ticket_1786857129.jpg', '/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
+        renderTickets([
+          '/tickets/ticket_1786857083.jpg',
+          '/tickets/ticket_1786856862.jpg',
+          '/tickets/ticket_1786980498.jpg',
+          '/tickets/ticket_1786980544.jpg',
+          '/tickets/ticket_1786856993.jpg'
+        ]);
       }
     })
     .catch(() => {
-      renderTickets(['/tickets/ticket_1786980544.jpg', '/tickets/ticket_1786980498.jpg', '/tickets/ticket_1786857129.jpg', '/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
+      renderTickets([
+        '/tickets/ticket_1786857083.jpg',
+        '/tickets/ticket_1786856862.jpg',
+        '/tickets/ticket_1786980498.jpg',
+        '/tickets/ticket_1786980544.jpg',
+        '/tickets/ticket_1786856993.jpg'
+      ]);
     });
 }
 
@@ -964,12 +978,15 @@ function renderTickets(sources: string[]) {
   const grid = document.getElementById('tickets-grid');
   if (!grid) return;
   
-  if (!sources || sources.length === 0) {
+  // Deduplicar URLs
+  const uniqueSources = Array.from(new Set(sources));
+  
+  if (!uniqueSources || uniqueSources.length === 0) {
     grid.innerHTML = '<p class="tickets-empty">📸 Envía fotos de tickets ganadores al bot de Telegram y aparecerán aquí automáticamente.</p>';
     return;
   }
   
-  grid.innerHTML = sources.map((src, index) => `
+  grid.innerHTML = uniqueSources.map((src, index) => `
     <div class="ticket-card" onclick="openTicketZoom('${src}')">
       <div class="ticket-badge">🏆 VERDE COBRADO</div>
       <img src="${src}" alt="Ticket Ganador Playdoit #${index + 1}" loading="lazy" />
