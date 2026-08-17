@@ -281,7 +281,20 @@ def extract_events_from_page(driver):
     script = get_shadow_script() + """
     var shadow = getShadow();
     if(!shadow) return [];
-    var containers = shadow.querySelectorAll('div[class*="EventBoxContainer"]');
+    
+    // Asegurar pestaña 'Hoy' activa
+    try {
+        var all = Array.from(shadow.querySelectorAll('*'));
+        var hoyTab = all.find(n => n.children.length === 0 && n.textContent.trim().toLowerCase() === 'hoy');
+        if (hoyTab) {
+            var parent = hoyTab.parentElement || hoyTab;
+            if (!parent.classList.contains('active') && !parent.classList.contains('selected')) {
+                hoyTab.click();
+            }
+        }
+    } catch(e) {}
+
+    var containers = Array.from(shadow.querySelectorAll('div[class*="EventBoxContainer"]'));
     var result = [];
 
     containers.forEach(function(c) {
