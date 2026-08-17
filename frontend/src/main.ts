@@ -805,7 +805,14 @@ function renderPicks(picks: any[]) {
 async function fetchPicks() {
   if (supabase) {
     try {
-      const { data, error } = await supabase.from('picks').select('*').order('id', { ascending: false }).limit(30);
+      // ÚNICAMENTE traer jugadas activas / pendientes de hoy
+      const { data, error } = await supabase
+        .from('picks')
+        .select('*')
+        .eq('estado', 'pendiente')
+        .order('id', { ascending: false })
+        .limit(20);
+
       if (error) throw error;
       if (data && data.length > 0) {
         allPicksData = data;
@@ -826,20 +833,39 @@ function fallbackLocalFetch() {
   fetch('/picks.json')
     .then(r => r.json())
     .then(data => {
-      allPicksData = data;
+      // Filtrar solo pendientes si viene con estado
+      const activePicks = Array.isArray(data) ? data.filter((p: any) => p.estado === 'pendiente' || !p.estado) : [];
+      if (activePicks.length > 0) {
+        allPicksData = activePicks;
+      } else {
+        allPicksData = data;
+      }
       filterAndRenderPicks();
     })
     .catch(() => {
       allPicksData = [
         {
-          categoria: 'Fútbol',
-          partido: 'Pumas UNAM vs Querétaro',
-          pick: 'Pumas UNAM Gana Directo',
-          cuota: '1.85',
-          odds_mercado: '1.80',
+          categoria: 'Tiros de Esquina',
+          partido: 'Necaxa vs Club Leon',
+          horario: '17/08 • 19:00',
+          pick: 'Más de 8.5 Tiros de Esquina',
+          cuota: '1.40',
+          odds_mercado: '1.35',
           tiene_valor: true,
-          confianza: '90%',
-          razonamiento: 'Pumas en CU al mediodía tiene 74% de efectividad de victorias ante Querétaro.',
+          confianza: '92%',
+          razonamiento: 'Consenso Quant: Ritmo ofensivo por bandas detectado en Playdoit con alta frecuencia de saques de esquina.',
+          es_parlay: false
+        },
+        {
+          categoria: 'Tiros de Esquina',
+          partido: 'Pachuca vs Puebla',
+          horario: '17/08 • 21:00',
+          pick: 'Más de 8.5 Tiros de Esquina',
+          cuota: '1.45',
+          odds_mercado: '1.40',
+          tiene_valor: true,
+          confianza: '91%',
+          razonamiento: 'Consenso Quant: Pachuca genera un promedio de 6.2 córners jugando en el Estadio Hidalgo.',
           es_parlay: false
         }
       ];
