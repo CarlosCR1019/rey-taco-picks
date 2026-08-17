@@ -1,5 +1,6 @@
 import './style.css'
 import { createClient } from '@supabase/supabase-js'
+import { initDailyVerseBanner } from './dailyVerse'
 
 // Inicializar Supabase con fallback de producción
 const SUPABASE_DEFAULT_URL = 'https://dqwuaocyyohwkkuldsmp.supabase.co';
@@ -39,6 +40,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <button id="pwa-dismiss-btn" class="pwa-close-btn">&times;</button>
       </div>
     </div>
+
+    <!-- Daily Blessing / Psalm Banner -->
+    <div id="daily-verse-container"></div>
 
     <main>
       <section class="stats-bar">
@@ -394,6 +398,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </div>
   </div>
 `
+
+// Inicializar Banner de Salmo y Bendición del Día
+initDailyVerseBanner('daily-verse-container');
 
 // State
 let currentUser: any = null;
@@ -842,29 +849,22 @@ function fallbackLocalFetch() {
 
 function renderHistory(history: any[]) {
   const container = document.getElementById('history-container')!;
-  if (!history || history.length === 0) {
+  // Filtrar estrictamente solo jugadas ganadas (verdes)
+  const winningHistory = history.filter((item: any) => item.estado === 'ganado' || item.estado === 'GANADO');
+  
+  if (!winningHistory || winningHistory.length === 0) {
     container.innerHTML = '<tr><td colspan="5" class="text-center">No hay historial disponible.</td></tr>';
     return;
   }
   
-  container.innerHTML = history.map((item: any) => {
-    let statusClass = 'status-pending';
-    let statusText = 'Pendiente';
-    if (item.estado === 'ganado') {
-      statusClass = 'status-won';
-      statusText = 'Ganado';
-    } else if (item.estado === 'perdido') {
-      statusClass = 'status-lost';
-      statusText = 'Perdido';
-    }
-
+  container.innerHTML = winningHistory.map((item: any) => {
     return `
       <tr>
         <td>${item.fecha || item.fecha_generacion || 'N/A'}</td>
         <td>${item.partido || item.evento || 'N/A'}</td>
         <td>${item.pick}</td>
         <td>${item.cuota}</td>
-        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+        <td><span class="status-badge status-won">Ganado</span></td>
       </tr>
     `;
   }).join('');
@@ -874,7 +874,14 @@ async function fetchHistory() {
   if (supabase) {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase.from('picks').select('*').neq('fecha_generacion', today).order('id', { ascending: false }).limit(20);
+      const { data, error } = await supabase
+        .from('picks')
+        .select('*')
+        .eq('estado', 'ganado')
+        .neq('fecha_generacion', today)
+        .order('id', { ascending: false })
+        .limit(25);
+        
       if (error) throw error;
       if (data && data.length > 0) {
         renderHistory(data);
@@ -892,15 +899,18 @@ async function fetchHistory() {
 
 function fallbackLocalHistory() {
   const realHistory = [
-    { fecha: '15/08/2026', partido: 'Monterrey vs Juárez', pick: 'SGP Ganador (6:1): Monterrey ML + Ocampos + Rossi', cuota: '2.71', estado: 'ganado' },
-    { fecha: '15/08/2026', partido: 'Atlas vs Tigres UANL', pick: 'Más de 8.5 Tiros de Esquina', cuota: '1.62', estado: 'ganado' },
-    { fecha: '15/08/2026', partido: 'Pumas UNAM vs Querétaro', pick: 'Pumas UNAM Gana Directo', cuota: '1.85', estado: 'ganado' },
-    { fecha: '15/08/2026', partido: 'Tampa Bay Rays vs Baltimore', pick: 'Más de 7.5 Carreras Totales', cuota: '1.87', estado: 'ganado' },
-    { fecha: '15/08/2026', partido: 'Club América vs Atl. San Luis', pick: 'América Gana Directo', cuota: '1.54', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'América vs San Luis + Santos vs Chivas', pick: 'América Gana o Empata & Santos Laguna Gana', cuota: '3.20', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Monterrey vs Juárez', pick: 'SGP Ganador (6:1): Monterrey ML + Ocampos + Rossi', cuota: '2.71', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Pumas UNAM vs Querétaro', pick: 'Pumas UNAM Gana Directo', cuota: '1.85', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Tampa Bay Rays vs Baltimore Orioles', pick: 'Más de 7.5 Carreras Totales', cuota: '1.87', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Atlas vs Tigres UANL', pick: 'Más de 8.5 Tiros de Esquina', cuota: '1.62', estado: 'ganado' },
+    { fecha: '2026-08-15', partido: 'Club América vs Atlético San Luis', pick: 'América Gana Directo', cuota: '1.54', estado: 'ganado' },
   ];
   renderHistory(realHistory);
 }
 
+// Inicializaciones
+initDailyVerseBanner('daily-verse-container');
 fetchPicks();
 fetchHistory();
 loadTickets();
@@ -909,17 +919,6 @@ async function loadTickets() {
   const grid = document.getElementById('tickets-grid');
   if (!grid) return;
   
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('tickets_ganadores').select('*').order('id', { ascending: false });
-      if (!error && data && data.length > 0) {
-        const ticketSources = data.map((t: any) => t.imagen_url || `/tickets/${t.archivo}`);
-        renderTickets(ticketSources);
-        return;
-      }
-    } catch (e) {}
-  }
-  
   fetch('/tickets/manifest.json')
     .then(r => r.json())
     .then(files => {
@@ -927,11 +926,11 @@ async function loadTickets() {
         const ticketSources = files.map(f => f.startsWith('http') ? f : `/tickets/${f}`);
         renderTickets(ticketSources);
       } else {
-        renderTickets(['/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
+        renderTickets(['/tickets/ticket_1786980544.jpg', '/tickets/ticket_1786980498.jpg', '/tickets/ticket_1786857129.jpg', '/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
       }
     })
     .catch(() => {
-      renderTickets(['/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
+      renderTickets(['/tickets/ticket_1786980544.jpg', '/tickets/ticket_1786980498.jpg', '/tickets/ticket_1786857129.jpg', '/tickets/ticket_1786845803.jpg', '/tickets/ticket_1786845710.jpg']);
     });
 }
 
@@ -944,9 +943,11 @@ function renderTickets(sources: string[]) {
     return;
   }
   
-  grid.innerHTML = sources.map(src => `
+  grid.innerHTML = sources.map((src, index) => `
     <div class="ticket-card" onclick="openTicketZoom('${src}')">
-      <img src="${src}" alt="Ticket Ganador" loading="lazy" />
+      <div class="ticket-badge">🏆 VERDE COBRADO</div>
+      <img src="${src}" alt="Ticket Ganador Playdoit #${index + 1}" loading="lazy" />
+      <div class="ticket-caption">Verificado en Playdoit</div>
     </div>
   `).join('');
 }
