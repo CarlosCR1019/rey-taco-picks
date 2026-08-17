@@ -196,9 +196,9 @@ def click_category(driver, category):
 
 def es_partido_futuro_valido(horario_str):
     """
-    Verifica si un partido es estrictamente FUTURO (aún no empieza)
-    respecto a la hora oficial actual de la Ciudad de México (CDMX).
-    Descarta con precisión matemática cualquier partido cuya hora ya haya pasado.
+    Verifica si un partido es estrictamente de HOY (o máximo MAÑANA dentro de las próximas 30 horas)
+    y que AÚN NO HAYA INICIADO respecto a la hora oficial actual de la Ciudad de México (CDMX).
+    Descarta con precisión matemática partidos pasados, minutos de juego en vivo Y partidos lejanos.
     """
     try:
         try:
@@ -208,7 +208,9 @@ def es_partido_futuro_valido(horario_str):
         except Exception:
             ahora = datetime.utcnow() - timedelta(hours=6)
         
-        # 1. Formato con fecha y hora ej: "16/08 • 08:00" o "16/08 17:00"
+        limite_maximo = ahora + timedelta(hours=30)  # Solo hoy y mañana
+        
+        # 1. Formato con fecha y hora ej: "17/08 • 19:00" o "22/08 • 19:00"
         match_fecha_hora = re.search(r'(\d{1,2})[/.-](\d{1,2})\s*(?:•|\s+)?\s*(\d{1,2}):(\d{2})', horario_str)
         if match_fecha_hora:
             dia = int(match_fecha_hora.group(1))
@@ -216,31 +218,54 @@ def es_partido_futuro_valido(horario_str):
             hora = int(match_fecha_hora.group(3))
             minuto = int(match_fecha_hora.group(4))
             
+            if hora >= 24 or minuto >= 60 or mes > 12 or dia > 31:
+                return False, f"Formato inválido ({dia}/{mes} {hora}:{minuto})"
+            
             anio = ahora.year
             fecha_partido = datetime(anio, mes, dia, hora, minuto, tzinfo=ahora.tzinfo if hasattr(ahora, 'tzinfo') and ahora.tzinfo else None)
             
             # Si la hora de inicio ya pasó respecto a CDMX
             if fecha_partido <= (ahora + timedelta(minutes=5)):
-                return False, f"Ya inició/terminó ({dia:02d}/{mes:02d} {hora:02d}:{minuto:02d} vs Hora CDMX {ahora.strftime('%H:%M')})"
+                return False, f"Ya inició/terminó ({dia:02d}/{mes:02d} {hora:02d}:{minuto:02d})"
+                
+            # Si es de una fecha lejana (> 30 horas, ej. 19/08, 21/08, 22/08)
+            if fecha_partido > limite_maximo:
+                return False, f"Descartado fecha lejana ({dia:02d}/{mes:02d} no es de hoy)"
+                
             return True, f"{dia:02d}/{mes:02d} • {hora:02d}:{minuto:02d}"
 
-        # 2. Formato solo hora ej: "Hoy 17:00 hrs" o "17:00"
+        # 2. Solo Fecha ej: "17/08"
+        match_solo_fecha = re.search(r'(\d{1,2})[/.-](\d{1,2})', horario_str)
+        if match_solo_fecha:
+            dia = int(match_solo_fecha.group(1))
+            mes = int(match_solo_fecha.group(2))
+            if mes > 12 or dia > 31:
+                return False, "Fecha inválida"
+            if (dia == ahora.day and mes == ahora.month) or (dia == (ahora + timedelta(days=1)).day and mes == (ahora + timedelta(days=1)).month):
+                return True, f"{dia:02d}/{mes:02d} • Hoy"
+            else:
+                return False, f"Descartado fecha lejana ({dia:02d}/{mes:02d})"
+
+        # 3. Solo Hora (ej: "Hoy • 19:00" o "Mañana • 21:00")
         match_hora = re.search(r'(\d{1,2}):(\d{2})', horario_str)
         if match_hora:
             hora = int(match_hora.group(1))
             minuto = int(match_hora.group(2))
             
+            if hora >= 24 or minuto >= 60:
+                return False, f"Hora inválida ({hora}:{minuto})"
+            
             if "mañana" in horario_str.lower() or "tomorrow" in horario_str.lower():
-                return True, f"Mañana {hora:02d}:{minuto:02d} hrs"
+                return True, f"Mañana • {hora:02d}:{minuto:02d}"
             
             fecha_partido = datetime(ahora.year, ahora.month, ahora.day, hora, minuto, tzinfo=ahora.tzinfo if hasattr(ahora, 'tzinfo') and ahora.tzinfo else None)
             if fecha_partido <= (ahora + timedelta(minutes=5)):
-                return False, f"Ya inició/terminó ({hora:02d}:{minuto:02d} vs Hora CDMX {ahora.strftime('%H:%M')})"
-            return True, f"Hoy {hora:02d}:{minuto:02d} hrs"
+                return False, f"Ya inició/terminó (Hoy {hora:02d}:{minuto:02d})"
+            return True, f"Hoy • {hora:02d}:{minuto:02d}"
             
-        return True, horario_str
+        return False, "Sin horario específico confirmado"
     except Exception as e:
-        return True, horario_str
+        return False, f"Error validación: {e}"
 
 def extract_events_from_page(driver):
     """Extrae ÚNICAMENTE eventos PRE-MATCH (no iniciados) de hoy y mañana directamente de Playdoit."""
@@ -253,24 +278,25 @@ def extract_events_from_page(driver):
     containers.forEach(function(c) {
         try {
             var rawText = c.innerText.trim();
-            // 1. Descartar partidos virtuales, esports, cyber o simulados
-            if (/e-fútbol|e-sports|esports|virtual|cyber|2x4\s*min|2x5\s*min|2x6\s*min|gt\s*sports/i.test(rawText)) return;
+            // 1. Descartar partidos en vivo, minutos de juego, descansos o esports
+            if (/en vivo|live|descanso|1[ª°]\\s*mitad|2[ª°]\\s*mitad|e-fútbol|esports|virtual|cyber|2x4\\s*min|2x5\\s*min|gt\\s*sports/i.test(rawText)) return;
 
             var lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
 
-            // 2. Descartar partidos con minutos de juego en curso (ej: 24:19, 71:40, Descanso, 1ª mitad)
-            var esEnJuegoAhora = lines.some(l => /^(\\d{1,2}:\\d{2}|descanso|1[ª°]\\s*mitad|2[ª°]\\s*mitad)$/i.test(l));
-            if (esEnJuegoAhora) return;
-
             // 2. Extraer Fecha y Hora
             var horario = "Hoy";
-            var dateLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}|\\d{1,2}\\s+de\\s+(?:ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)/i.test(l));
-            var timeLine = lines.find(l => /^\\d{1,2}:\\d{2}$/.test(l));
+            var fullDateTimeLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}.*\\d{1,2}:\\d{2}/.test(l));
+            var dateLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}/.test(l));
+            var timeLine = lines.find(l => /^(?:0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(l));
 
-            if (dateLine) {
+            if (fullDateTimeLine) {
+                horario = fullDateTimeLine;
+            } else if (dateLine && timeLine) {
+                horario = dateLine + " • " + timeLine;
+            } else if (dateLine) {
                 horario = dateLine;
             } else if (timeLine) {
-                horario = "Hoy " + timeLine + " hrs";
+                horario = "Hoy • " + timeLine;
             }
 
             // 3. Extraer Nombres de Equipos
@@ -400,38 +426,44 @@ def fase1_escaneo_superficie(driver):
         driver.get("https://www.playdoit.mx/es/")
         time.sleep(8)
         
-        # Configuración inicial
+        # Configuración inicial: Formato Decimal y Pestaña 'Hoy'
         click_decimal_toggle(driver)
         click_tab_hoy(driver)
+        time.sleep(3)
         
+        # 1. Escaneo inicial directo de la cartelera principal de HOY
+        eventos_iniciales = extract_events_from_page(driver)
+        print(f"   📡 Cartelera 'Hoy' detectada con {len(eventos_iniciales)} eventos principales.")
+        for e in eventos_iniciales:
+            nombre = f"{e['local']} vs {e['visitante']}"
+            es_valido_tiempo, horario_limpio = es_partido_futuro_valido(e.get('horario', 'Hoy'))
+            if not es_valido_tiempo:
+                continue
+            if not any(x["partido"] == nombre for x in partidos_data):
+                partidos_data.append({
+                    "categoria": "Liga MX / Fútbol / MLB",
+                    "partido": nombre,
+                    "local": e['local'],
+                    "visitante": e['visitante'],
+                    "horario": horario_limpio,
+                    "cuotas_superficie": e.get('cuotas', [])[:4],
+                    "info_texto": f"Hoy: {nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
+                })
+        
+        # 2. Exploración de categorías específicas adicionales
         categorias = [
-            # Fútbol
-            'PLAY BOOSTS', 'Liga MX', 'Leagues Cup', 'UEFA Champions League',
-            'UEFA Europa League', 'UEFA Conference League', 'La Liga',
-            'Copa Italia', 'Copa Libertadores', 'Copa Sudamericana',
-            'Primeira Liga', 'Liga MX Femenil', 'Liga de Expansión MX',
-            'Liga Profesional', 'Brasileiro Serie A', 'Primera A',
-            # Deportes USA
-            'MLB', 'MLS', 'NFL', 'NFL, Pretemporada',
-            # México extra
-            'Liga Mexicana de Beisbol',
-            # Combate
-            'Boxeo', 'MMA',
-            # Otros
-            'Tenis', 'E-sports +'
+            'Liga MX', 'MLB', 'La Liga', 'Copa Italia', 'Primeira Liga', 
+            'Liga Profesional', 'Primera A', 'MLS', 'NFL'
         ]
         
         for cat in categorias:
             print(f"   Explorando: {cat}...", end=" ")
             if click_category(driver, cat):
                 time.sleep(2)
-                click_tab_hoy(driver) # Asegurar que solo vemos Hoy al entrar a cada categoría
-                time.sleep(1)
                 eventos = extract_events_from_page(driver)
                 nuevos = 0
                 for e in eventos:
                     nombre = f"{e['local']} vs {e['visitante']}"
-                    # Filtro de tiempo estricto contra reloj CDMX
                     es_valido_tiempo, horario_limpio = es_partido_futuro_valido(e.get('horario', 'Hoy'))
                     if not es_valido_tiempo:
                         continue
