@@ -574,23 +574,31 @@ def fase3_filtro_inteligente(partidos_data):
         return []
     
     client = Groq(api_key=GROQ_API_KEY)
-    catalogo = [{"cat": p['categoria'], "partido": p['partido'], "horario": p.get('horario', 'Hoy'), "cuotas": p.get('cuotas_superficie', [])} for p in partidos_data]
+    
+    # Filtrar solo eventos con horario futuro y priorizar deportes principales
+    eventos_filtrados = []
+    for p in partidos_data:
+        es_val, h_limpio = es_partido_futuro_valido(p.get('horario', 'Hoy'))
+        if es_val:
+            eventos_filtrados.append({
+                "cat": p['categoria'],
+                "partido": p['partido'],
+                "horario": h_limpio,
+                "cuotas": p.get('cuotas_superficie', [])[:3]
+            })
+            
+    catalogo = eventos_filtrados[:30]
     
     prompt = f"""
-    Catálogo de {len(catalogo)} eventos deportivos. 
-    REGLA CRÍTICA PRE-MATCH (CERO TOLERANCIA):
-    - Selecciona ÚNICAMENTE partidos que AÚN NO HAYAN COMENZADO (que se jueguen más tarde hoy o mañana).
-    - PROHIBIDO rotundo elegir partidos que ya estén en juego o cuya hora ya haya pasado.
-    - PROHIBIDO elegir partidos de fechas futuras lejanas (semana que viene).
-    
-    Selecciona EXACTAMENTE 8 partidos con mayor potencial, asegurando MÁXIMA DIVERSIDAD DEPORTIVA:
-    - Incluir MLB (Béisbol de hoy/mañana), Fútbol Internacional (La Liga, Premier, Champions, Libertadores) y Liga MX (ej. Monterrey vs Juárez, Atlas vs Tigres) que jueguen HOY o MAÑANA.
-    - Si no hay juegos de NFL hoy o mañana, NO selecciones NFL.
+    Catálogo de {len(catalogo)} eventos deportivos de HOY/MAÑANA.
+    REGLA CRÍTICA PRE-MATCH:
+    - Selecciona ÚNICAMENTE partidos que AÚN NO HAYAN COMENZADO.
+    - Asegura MÁXIMA DIVERSIDAD: Incluir Liga MX, MLB Béisbol y Fútbol Internacional.
     
     {json.dumps(catalogo)}
     
-    Devuelve SOLO un JSON array de strings con los nombres exactos de los partidos.
-    Ejemplo: ["Monterrey vs Juárez", "Atlas vs Tigres", "New York Yankees vs Boston Red Sox"]
+    Devuelve SOLO un JSON array de strings con los nombres exactos de los 8 mejores partidos.
+    Ejemplo: ["Necaxa vs Club Leon", "Pachuca vs Puebla", "Los Angeles Dodgers vs Milwaukee Brewers"]
     """
     
     try:
