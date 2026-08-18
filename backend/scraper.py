@@ -1294,8 +1294,8 @@ def _enviar_telegram(picks):
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        vip_channel_id = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
-        free_channel_id = os.getenv("TELEGRAM_FREE_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
+        vip_channel_id = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or "-1003845930328"
+        free_channel_id = os.getenv("TELEGRAM_FREE_CHANNEL_ID") or "-1004387927424"
         
         if not token or not chat_id:
             print("   ⚠️ No hay credenciales de Telegram configuradas.")
