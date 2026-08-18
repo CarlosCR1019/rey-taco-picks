@@ -1752,4 +1752,144 @@ button {
   color: black;
 }
 
+/* ============================================================
+   App Footer & AdSense Compliance
+   ============================================================ */
+.app-footer {
+  margin-top: 4rem;
+  padding: 3rem 1.5rem 2rem 1.5rem;
+  background: #080c14;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+}
+
+.footer-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-accent);
+}
+
+.footer-brand strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.footer-brand p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: var(--gold-accent);
+}
+
+.footer-links .sep {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.footer-disclaimer {
+  max-width: 800px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  text-align: left;
+}
+
+.badge-18 {
+  background: #dc2626;
+  color: white;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.footer-disclaimer p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.footer-copyright p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+/* Legal Modal */
+.legal-modal-content {
+  max-width: 650px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.legal-body {
+  text-align: left;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.legal-body h3 {
+  color: var(--gold-accent);
+  margin: 1.2rem 0 0.4rem 0;
+  font-size: 0.98rem;
+}
+
+.legal-body p {
+  margin-bottom: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .footer-brand {
+    flex-direction: column;
+    text-align: center;
+  }
+  .footer-disclaimer {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+
 

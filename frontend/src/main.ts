@@ -147,6 +147,52 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </section>
     </main>
 
+    <!-- Professional Footer (AdSense Compliant) -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <img src="/logo.jpg" alt="Rey Taco Picks" class="footer-logo" />
+          <div>
+            <strong>Rey Taco Picks 🌮👑</strong>
+            <p>Análisis matemático, valor esperado (+EV) y predicciones deportivas con Inteligencia Artificial.</p>
+          </div>
+        </div>
+        
+        <div class="footer-links">
+          <a href="#" id="link-privacy">Política de Privacidad</a>
+          <span class="sep">•</span>
+          <a href="#" id="link-terms">Términos y Condiciones</a>
+          <span class="sep">•</span>
+          <a href="https://t.me/carlosds1017" target="_blank">Contacto y Publicidad</a>
+          <span class="sep">•</span>
+          <a href="https://t.me/ReyTacoPicks" target="_blank">Canal Telegram Oficial</a>
+        </div>
+        
+        <div class="footer-disclaimer">
+          <span class="badge-18">+18</span>
+          <p>Juega con responsabilidad. Prohibido para menores de edad. Los pronósticos y análisis estadísticos proporcionados por Rey Taco Picks (reytacopicks.com) son únicamente de carácter informativo y recreativo. Apuesta con moderación.</p>
+        </div>
+        
+        <div class="footer-copyright">
+          <p>© 2026 Rey Taco Picks (reytacopicks.com) — Todos los derechos reservados.</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Legal Modal (Privacy & Terms) -->
+    <div id="legal-modal" class="modal-overlay hidden">
+      <div class="modal-content legal-modal-content">
+        <button id="close-legal-modal" class="close-btn">&times;</button>
+        <div class="modal-header">
+          <h2 id="legal-modal-title">Política de Privacidad</h2>
+          <p id="legal-modal-subtitle">Información legal y protección de datos en reytacopicks.com</p>
+        </div>
+        <div id="legal-modal-body" class="legal-body">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
     <!-- Auth & Subscription Modal -->
     <div id="auth-modal" class="modal-overlay hidden">
       <div class="modal-content">
@@ -1447,4 +1493,69 @@ if (btnCopyParlaySlip) {
     });
   });
 }
+
+// ============================================================
+// Legal Modals (Privacy & Terms - Google AdSense Compliance)
+// ============================================================
+const legalModal = document.getElementById('legal-modal')!;
+const closeLegalModal = document.getElementById('close-legal-modal')!;
+const legalTitle = document.getElementById('legal-modal-title')!;
+const legalSubtitle = document.getElementById('legal-modal-subtitle')!;
+const legalBody = document.getElementById('legal-modal-body')!;
+
+function openLegalModal(type: 'privacy' | 'terms') {
+  if (type === 'privacy') {
+    legalTitle.textContent = 'Política de Privacidad y Cookies';
+    legalSubtitle.textContent = 'Última actualización: Agosto 2026 • reytacopicks.com';
+    legalBody.innerHTML = `
+      <h3>1. Información que recopilamos</h3>
+      <p>En Rey Taco Picks (https://reytacopicks.com), respetamos tu privacidad. Recopilamos información básica cuando te registras (como correo electrónico) únicamente para gestionar tu membresía VIP y personalizar tu experiencia.</p>
+      
+      <h3>2. Uso de Cookies y Publicidad de Google AdSense</h3>
+      <p>Este sitio web utiliza cookies técnicas y de terceros (como Google AdSense y Google Analytics) para mostrar anuncios relevantes basados en tus visitas anteriores a este y otros sitios web en Internet. Los usuarios pueden inhabilitar la publicidad personalizada visitando la Configuración de anuncios de Google o mediante opt-out en aboutads.info.</p>
+      
+      <h3>3. Enlaces a Terceros y Afiliados</h3>
+      <p>Rey Taco Picks puede contener enlaces a sitios web de terceros (como casas de apuestas autorizadas, e.g., Playdoit). No nos hacemos responsables de las políticas de privacidad o el contenido de dichos sitios externos.</p>
+      
+      <h3>4. Contacto</h3>
+      <p>Para cualquier duda sobre tus datos o solicitar su eliminación, contáctanos vía Telegram a <strong>@carlosds1017</strong> o soporte@reytacopicks.com.</p>
+    `;
+  } else {
+    legalTitle.textContent = 'Términos y Condiciones de Uso';
+    legalSubtitle.textContent = 'Última actualización: Agosto 2026 • reytacopicks.com';
+    legalBody.innerHTML = `
+      <h3>1. Naturaleza del Servicio</h3>
+      <p>Rey Taco Picks es una plataforma de análisis deportivo cuantitativo y modelos estadísticos de Inteligencia Artificial. Los contenidos publicados tienen fines estrictamente informativos, educativos y de entretenimiento.</p>
+      
+      <h3>2. Mayoría de Edad (+18)</h3>
+      <p>El uso de este sitio y el acceso a contenido de apuestas deportivas está reservado exclusivamente a personas mayores de 18 años (o la edad legal de tu jurisdicción).</p>
+      
+      <h3>3. Exención de Responsabilidad</h3>
+      <p>No garantizamos ganancias ni resultados exactos. Las apuestas deportivas implican riesgo financiero. Rey Taco Picks no se hace responsable por pérdidas derivadas de las decisiones individuales de apuestas de los usuarios.</p>
+      
+      <h3>4. Membresía VIP</h3>
+      <p>El acceso VIP otorga acceso a herramientas avanzadas como el Creador de Parlays IA y canales exclusivos. Todos los pagos son finales.</p>
+    `;
+  }
+  legalModal.classList.remove('hidden');
+}
+
+document.getElementById('link-privacy')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  openLegalModal('privacy');
+});
+
+document.getElementById('link-terms')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  openLegalModal('terms');
+});
+
+closeLegalModal?.addEventListener('click', () => {
+  legalModal.classList.add('hidden');
+});
+
+legalModal?.addEventListener('click', (e) => {
+  if (e.target === legalModal) legalModal.classList.add('hidden');
+});
+
 
