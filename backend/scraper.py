@@ -1324,23 +1324,22 @@ def _enviar_telegram(picks):
             _post_telegram(token, vip_channel_id, msg_vip, reply_markup)
             print("   👑 ✅ Telegram (Canal VIP) enviado.")
 
-        # 3. Enviar al Canal FREE (Picks Directos sin demora efímera)
+        # 3. Enviar al Canal FREE (Picks Directos)
         if free_channel_id:
-            for i, p in enumerate(picks[:3]):
+            for i, p in enumerate(picks[:2]):
                 msg_free = f"📢 *PICK GRATUITO #{i+1} DEL DÍA* 🌮👑\n\n"
                 msg_free += f"🏟️ *Partido:* {p.get('partido')}\n"
                 if p.get('horario'): msg_free += f"🕒 *Horario:* `{p.get('horario')}`\n"
                 msg_free += f"🎯 *Pick:* `{p.get('pick')}`\n"
-                msg_free += f"💰 *Cuota Playdoit:* `{p.get('cuota')}`\n"
+                msg_free += f"💰 *Cuota:* `{p.get('cuota')}`\n"
                 msg_free += f"📊 *Confianza:* {p.get('confianza', '90%')}\n\n"
                 if p.get('razonamiento'):
-                    msg_free += f"🧠 *¿Por qué este pick?:*\n{p.get('razonamiento')}\n\n"
-                msg_free += "🔒 _Accede a los demás picks y al Parlay IA en el VIP_\n"
-                msg_free += "👑 *Únete al VIP:* @carlosds1017\n🌐 https://reytacopicks.com"
+                    msg_free += f"🧠 *Análisis:* {p.get('razonamiento')}\n\n"
+                msg_free += "🔒 _Accede a todos los picks y al Parlay IA en:_\n👉 https://reytacopicks.com"
                 
                 _post_telegram(token, free_channel_id, msg_free, reply_markup)
                 print(f"   📢 ✅ Telegram (Canal FREE - Pick #{i+1}) enviado: {p.get('partido')}")
-                time.sleep(2)
+                time.sleep(1)
 
     except Exception as e:
         print(f"   ⚠️ Error en envío a Telegram: {e}")
@@ -1359,8 +1358,16 @@ def _post_telegram(token, chat_id, text, reply_markup=None):
             
         data = json.dumps(payload).encode('utf-8')
         req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            return resp.status == 200
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return resp.getcode() == 200
+        except Exception:
+            # Fallback seguro sin Markdown si fallan caracteres especiales
+            payload.pop("parse_mode", None)
+            data2 = json.dumps(payload).encode('utf-8')
+            req2 = urllib.request.Request(url, data=data2, headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req2, timeout=10) as resp2:
+                return resp2.getcode() == 200
     except Exception as e:
         print(f"      ❌ Falló post a {chat_id}: {e}")
         return False
