@@ -44,18 +44,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <!-- Daily Blessing / Psalm Banner -->
     <div id="daily-verse-container"></div>
 
-    <!-- Official Playdoit Affiliate & Bonus Promo Banner -->
-    <section class="affiliate-banner-box">
-      <div class="affiliate-badge">🎁 OFERTA EXCLUSIVA PLAYDOIT x REY TACO</div>
-      <div class="affiliate-content">
-        <div class="affiliate-text">
-          <h3>Duplica tu 1er Depósito hasta <strong>$3,500 MXN</strong> + <strong>$500 MXN</strong> de Bienvenida</h3>
-          <p>Juega los picks de Rey Taco Picks con momios mejorados, pago anticipado y retiro instantáneo en Playdoit México.</p>
-        </div>
-        <a href="https://www.playdoit.mx/es/" target="_blank" class="btn-claim-bonus">Reclamar Bono en Playdoit ↗</a>
-      </div>
-    </section>
-
     <main>
       <section class="stats-bar">
         <div class="stat-card">
