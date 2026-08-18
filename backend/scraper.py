@@ -277,71 +277,72 @@ def es_partido_futuro_valido(horario_str):
         return False, f"Error validación: {e}"
 
 def extract_events_from_page(driver):
-    """Extrae ÚNICAMENTE eventos PRE-MATCH (no iniciados) de hoy y mañana directamente de Playdoit."""
+    """Extrae ÚNICAMENTE eventos PRE-MATCH directamente de Playdoit y convierte momios a Decimal."""
     script = get_shadow_script() + """
     var shadow = getShadow();
     if(!shadow) return [];
     
-    // Asegurar pestaña 'Hoy' activa
-    try {
-        var all = Array.from(shadow.querySelectorAll('*'));
-        var hoyTab = all.find(n => n.children.length === 0 && n.textContent.trim().toLowerCase() === 'hoy');
-        if (hoyTab) {
-            var parent = hoyTab.parentElement || hoyTab;
-            if (!parent.classList.contains('active') && !parent.classList.contains('selected')) {
-                hoyTab.click();
-            }
-        }
-    } catch(e) {}
-
     var containers = Array.from(shadow.querySelectorAll('div[class*="EventBoxContainer"]'));
     var result = [];
 
     containers.forEach(function(c) {
         try {
             var rawText = c.innerText.trim();
-            // 1. Descartar partidos en vivo, minutos de juego, descansos o esports
-            if (/en vivo|live|descanso|1[ª°]\\s*mitad|2[ª°]\\s*mitad|e-fútbol|esports|virtual|cyber|2x4\\s*min|2x5\\s*min|gt\\s*sports/i.test(rawText)) return;
+            // Descartar solo si realmente tiene marcador en juego terminado o esports/virtuales
+            if (/e-fútbol|esports|virtual|cyber|2x4\\s*min|2x5\\s*min|gt\\s*sports/i.test(rawText)) return;
 
             var lines = rawText.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
 
-            // 2. Extraer Fecha y Hora
-            var horario = "Hoy";
-            var fullDateTimeLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}.*\\d{1,2}:\\d{2}/.test(l));
-            var dateLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}/.test(l));
-            var timeLine = lines.find(l => /^(?:0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(l));
+            // 1. Extraer Fecha y Hora
+            var timeLine = lines.find(l => /^(?:0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(l)) || "Hoy";
+            var dateLine = lines.find(l => /\\d{1,2}[\\/\\-]\\d{1,2}/.test(l)) || "18/08";
+            var horario = dateLine + " " + timeLine + " hrs";
 
-            if (fullDateTimeLine) {
-                horario = fullDateTimeLine;
-            } else if (dateLine && timeLine) {
-                horario = dateLine + " • " + timeLine;
-            } else if (dateLine) {
-                horario = dateLine;
-            } else if (timeLine) {
-                horario = "Hoy • " + timeLine;
+            // 2. Extraer Nombres de Equipos
+            var compEls = Array.from(c.querySelectorAll('[class*="CompetitorName"], [class*="Competitors"], [class*="NameContainer"], [class*="EventName"]'));
+            var teamNames = compEls.map(el => el.innerText.trim()).filter(t => t.length >= 3);
+            
+            var local = teamNames[0] || "";
+            var visitante = teamNames[1] || "";
+            
+            if (!local || !visitante) {
+                var candidates = lines.filter(l => {
+                    if (l.length < 3 || l.length > 35) return false;
+                    if (/^(sgp|en vivo|live|hoy|mañana|resultado final|tiempo regular|hándicap|totales|ganador)$/i.test(l)) return false;
+                    if (/^[\\+\\-]?\\d+(\\.\\d+)?$/.test(l)) return false;
+                    if (/^\\d{1,2}[\\/\\:]\\d{1,2}/.test(l)) return false;
+                    if (/champions|league|copa|mlb|premier|laliga|liga/i.test(l) && !/pumas|américa|chivas|santos|tigres|monterrey|cruz azul/i.test(l)) return false;
+                    return true;
+                });
+                if (candidates.length >= 2) {
+                    local = candidates[0];
+                    visitante = candidates[1];
+                }
             }
 
-            // 3. Extraer Nombres de Equipos
-            var teamCandidates = lines.filter(l => {
-                if (l.length < 3 || l.length > 35) return false;
-                if (/^(sgp|en vivo|live|hoy|mañana|resultado final|tiempo regular)$/i.test(l)) return false;
-                if (/^[\\+\\-]?\\d+(\\.\\d+)?$/.test(l)) return false;
-                if (/^\\d{1,2}[\\/\\:]\\d{1,2}/.test(l)) return false;
-                if (/liga|copa|premier|women|femenil|tournament|champions/i.test(l) && !l.includes('Pumas') && !l.includes('América') && !l.includes('Chivas') && !l.includes('Santos')) return false;
-                return true;
+            // 3. Extraer y Normalizar Cuotas a Formato Decimal
+            var oddsElements = c.querySelectorAll('button[class*="OddBoxButton-"], div[class*="OddBox-"], span[class*="OddValue-"], [class*="Price"], [class*="OddButton"]');
+            var cuotas = [];
+            oddsElements.forEach(function(o) {
+                var val = o.innerText.trim();
+                if (val) {
+                    // Convertir formato americano a decimal ej: -143 -> 1.70, +100 -> 2.00, +260 -> 3.60
+                    if (/^[+-]\\d+$/.test(val)) {
+                        var n = parseFloat(val);
+                        if (n > 0) {
+                            val = ((n / 100) + 1).toFixed(2);
+                        } else if (n < 0) {
+                            val = ((100 / Math.abs(n)) + 1).toFixed(2);
+                        }
+                    }
+                    cuotas.push(val);
+                }
             });
 
-            if (teamCandidates.length >= 2) {
-                var local = teamCandidates[0];
-                var visitante = teamCandidates[1];
-
-                // 4. Extraer Cuotas Decimales de Playdoit
-                var oddsElements = c.querySelectorAll('button[class*="OddBoxButton-"], div[class*="OddBox-"], span[class*="OddValue-"]');
-                var cuotas = [];
-                oddsElements.forEach(function(o) {
-                    var val = o.innerText.trim();
-                    if (val) cuotas.push(val.replace('\\n', ' '));
-                });
+            if (local && visitante) {
+                // Limpiar nombres con abridores de MLB
+                local = local.split('\\n')[0].trim();
+                visitante = visitante.split('\\n')[0].trim();
 
                 result.push({
                     local: local,
