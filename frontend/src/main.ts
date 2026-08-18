@@ -97,9 +97,14 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div class="ad-container" id="ad-slot-feed">
         <span class="ad-label">PUBLICIDAD / ANUNCIO PATROCINADO</span>
         <div class="ad-box-placeholder">
+          <ins class="adsbygoogle"
+               style="display:block; text-align:center;"
+               data-ad-client="ca-pub-2697347675028991"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
           <div class="ad-fallback-content">
             <span class="ad-fallback-icon">🎯</span>
-            <span>Espacio Publicitario Disponible • Anúnciate ante miles de apostadores en Rey Taco Picks</span>
+            <span>Espacio Publicitario Oficial • Anúnciate ante miles de apostadores en Rey Taco Picks</span>
             <a href="https://t.me/carlosds1017" target="_blank" class="btn-ad-contact">Contactar Anuncios</a>
           </div>
         </div>
