@@ -285,6 +285,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             <button type="submit" id="redeem-btn" class="submit-btn btn-gold">Activar Pase VIP</button>
           </form>
         </div>
+      </div>
+    </div>
 
     <!-- Stake Calculator Modal -->
     <div id="calc-modal" class="modal-overlay hidden">
@@ -357,31 +359,25 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </div>
 
-    <!-- AI Parlay Builder Modal (VIP Exclusive) -->
+    <!-- AI Parlay Builder Modal -->
     <div id="parlay-builder-modal" class="modal-overlay hidden">
       <div class="modal-content parlay-builder-modal-content">
         <button id="close-parlay-modal" class="close-btn">&times;</button>
         
         <div class="modal-header">
-          <div class="vip-exclusive-badge">⚡ EXCLUSIVO VIP</div>
+          <div class="vip-exclusive-badge">⚡ IA CORRELATION ENGINE</div>
           <h3 class="modal-title">🤖 Creador de Parlays IA a Medida</h3>
-          <p class="modal-subtitle">Combina tu partido favorito con el mejor análisis matemático +EV en Playdoit</p>
+          <p class="modal-subtitle">Combina tu partido favorito con el mejor análisis matemático +EV</p>
         </div>
 
-        <!-- Non-VIP Lock Gate -->
+        <!-- Non-VIP Lock Gate (Disabled, unlocked for all) -->
         <div id="parlay-vip-gate" class="vip-gate-box hidden">
           <div class="vip-lock-icon">🔒</div>
           <h4>Función Exclusiva para Miembros VIP</h4>
           <p>Nuestra Inteligencia Artificial analiza correlaciones, córners, goles y líneas en tiempo real para armar combinadas personalizadas de alta probabilidad.</p>
-          <div class="vip-perks-list">
-            <div class="vip-perk-item"><span>✅</span> Parlays a medida ilimitados con cualquier partido</div>
-            <div class="vip-perk-item"><span>✅</span> Filtro de correlación positiva y momios de Playdoit</div>
-            <div class="vip-perk-item"><span>✅</span> Cálculo de valor matemático esperado (+EV)</div>
-          </div>
-          <a href="https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks%20para%20usar%20el%20Creador%20de%20Parlays%20IA" target="_blank" class="btn-gold btn-full btn-unlock-vip">👑 Desbloquear Pase VIP ($299 MXN)</a>
         </div>
 
-        <!-- VIP Interactive Builder Interface -->
+        <!-- Interactive Builder Interface -->
         <div id="parlay-builder-interface" class="parlay-builder-body">
           <div class="form-group">
             <label>🏟️ Partido Base Seleccionado</label>
@@ -452,7 +448,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             </div>
 
             <div class="ticket-action-btns">
-              <a href="https://www.playdoit.mx/es/" target="_blank" class="btn-playdoit-pick">📲 Apostar en Playdoit ↗</a>
               <button id="btn-copy-parlay-slip" class="btn-share-pick">📋 Copiar Jugada</button>
             </div>
           </div>
@@ -1112,6 +1107,10 @@ if (calcBtn && calcModal) {
     calcModal.classList.add('hidden');
   });
 
+  calcModal.addEventListener('click', (e) => {
+    if (e.target === calcModal) calcModal.classList.add('hidden');
+  });
+
   bankrollInput.addEventListener('input', updateStakeCalculations);
 }
 
@@ -1255,38 +1254,34 @@ const btnCopyParlaySlip = document.getElementById('btn-copy-parlay-slip')!;
 let currentGeneratedParlay: any = null;
 
 function openParlayBuilder(initialMatch?: string) {
-  if (!isSubscribed) {
-    parlayVipGate.classList.remove('hidden');
-    parlayBuilderInterface.classList.add('hidden');
-  } else {
-    parlayVipGate.classList.add('hidden');
-    parlayBuilderInterface.classList.remove('hidden');
-    
-    // Populate match dropdown with available matches from allPicksData
-    const uniqueMatches: { name: string; sport: string }[] = [];
-    allPicksData.forEach((p: any) => {
-      const name = p.partido || p.evento;
-      if (name && !p.es_parlay && !uniqueMatches.some(m => m.name === name)) {
-        uniqueMatches.push({ name, sport: p.categoria || p.deporte || 'Liga MX' });
-      }
-    });
-
-    if (uniqueMatches.length === 0) {
-      uniqueMatches.push(
-        { name: 'Pumas UNAM vs Queretaro', sport: 'Liga MX' },
-        { name: 'America vs Atletico San Luis', sport: 'Liga MX' },
-        { name: 'Santos Laguna vs Guadalajara Chivas', sport: 'Liga MX' },
-        { name: 'Xolos de Tijuana vs Cruz Azul', sport: 'Liga MX' },
-        { name: 'Los Angeles Dodgers vs Milwaukee Brewers', sport: 'MLB' }
-      );
+  parlayVipGate.classList.add('hidden');
+  parlayBuilderInterface.classList.remove('hidden');
+  
+  // Populate match dropdown with available matches from allPicksData
+  const uniqueMatches: { name: string; sport: string }[] = [];
+  allPicksData.forEach((p: any) => {
+    const name = p.partido || p.evento;
+    if (name && !p.es_parlay && !uniqueMatches.some(m => m.name === name)) {
+      uniqueMatches.push({ name, sport: p.categoria || p.deporte || 'Liga MX' });
     }
+  });
 
-    parlayBaseMatchSelect.innerHTML = uniqueMatches.map(m => `
-      <option value="${m.name}" ${initialMatch && m.name.toLowerCase().includes(initialMatch.toLowerCase().split(' vs ')[0]) ? 'selected' : ''}>
-        ${m.name} (${m.sport})
-      </option>
-    `).join('');
+  if (uniqueMatches.length === 0) {
+    uniqueMatches.push(
+      { name: 'Necaxa vs Club León', sport: 'Liga MX' },
+      { name: 'Pachuca vs Puebla', sport: 'Liga MX' },
+      { name: 'America vs Atletico San Luis', sport: 'Liga MX' },
+      { name: 'Santos Laguna vs Guadalajara Chivas', sport: 'Liga MX' },
+      { name: 'Xolos de Tijuana vs Cruz Azul', sport: 'Liga MX' },
+      { name: 'Los Angeles Dodgers vs Milwaukee Brewers', sport: 'MLB' }
+    );
   }
+
+  parlayBaseMatchSelect.innerHTML = uniqueMatches.map(m => `
+    <option value="${m.name}" ${initialMatch && m.name.toLowerCase().includes(initialMatch.toLowerCase().split(' vs ')[0]) ? 'selected' : ''}>
+      ${m.name} (${m.sport})
+    </option>
+  `).join('');
 
   parlayModal.classList.remove('hidden');
 }
@@ -1310,6 +1305,12 @@ if (parlayHeaderBtn) {
 if (closeParlayModalBtn) {
   closeParlayModalBtn.addEventListener('click', () => {
     parlayModal.classList.add('hidden');
+  });
+}
+
+if (parlayModal) {
+  parlayModal.addEventListener('click', (e) => {
+    if (e.target === parlayModal) parlayModal.classList.add('hidden');
   });
 }
 
