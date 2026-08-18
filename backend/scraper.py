@@ -514,24 +514,13 @@ def fase1_escaneo_superficie(driver):
     except Exception as e:
         print(f"   ⚠️ Nota en escáner Playdoit: {e}")
     
-    # Si la lista inicial en Playdoit tuviera pocos eventos, consultar la página principal directamente
-    if not partidos_data:
-        eventos = extract_events_from_page(driver)
-        for e in eventos:
-            es_valido_tiempo, horario_limpio = es_partido_futuro_valido(e.get('horario', 'Hoy'))
-            if not es_valido_tiempo:
-                continue
-            nombre = f"{e['local']} vs {e['visitante']}"
-            if not any(x["partido"] == nombre for x in partidos_data):
-                partidos_data.append({
-                    "categoria": "Liga MX / Fútbol",
-                    "partido": nombre,
-                    "local": e['local'],
-                    "visitante": e['visitante'],
-                    "horario": horario_limpio,
-                    "cuotas_superficie": e.get('cuotas', [])[:4],
-                    "info_texto": f"{nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
-                })
+    # Si la lista inicial en Playdoit tuviera pocos eventos o fuera entre semana (martes/miércoles)
+    if len(partidos_data) < 4:
+        print(f"\n   🌐 Cartelera en Playdoit reducida ({len(partidos_data)}). Conectando satélite The Odds API...")
+        api_events = obtener_eventos_odds_api()
+        for ae in api_events:
+            if not any(x["partido"].lower() == ae["partido"].lower() for x in partidos_data):
+                partidos_data.append(ae)
         
     print(f"\n   📊 Total eventos únicos de HOY/MAÑANA para análisis: {len(partidos_data)}")
     return partidos_data
@@ -798,7 +787,11 @@ def fase4_inmersion(driver, objetivos, partidos_data):
                 "mercados_profundos": mercados_texto[:8000]
             })
         else:
-            print(f"      ⚠️ No se pudo entrar al partido, usando cuotas de superficie.")
+            if base.get('mercados_reales'):
+                base['mercados_profundos'] = "\n".join(base['mercados_reales'])
+                print(f"      🎯 Usando {len(base['mercados_reales'])} mercados verificados del satélite.")
+            else:
+                print(f"      ⚠️ No se pudo entrar al partido, usando cuotas de superficie.")
             datos_profundos.append(base)
     
     print(f"\n   📊 Inmersión completada: {len(datos_profundos)} partidos analizados a fondo.")
@@ -1477,7 +1470,7 @@ def _enviar_telegram(picks):
             mensaje_completo += f"  🔥 Confianza: {p.get('confianza', '85%')}\n"
             mensaje_completo += razonamiento + "\n"
         
-        mensaje_completo += "🌐 Cartera completa en vivo: https://rey-taco-picks-web.onrender.com"
+        mensaje_completo += "🌐 Cartera completa en vivo: https://reytacopicks.com"
 
         url = f"https://api.telegram.org/bot{token}/sendMessage"
 
@@ -1485,7 +1478,7 @@ def _enviar_telegram(picks):
             "inline_keyboard": [
                 [
                     {"text": "📲 Apostar en Playdoit", "url": "https://www.playdoit.mx/es/"},
-                    {"text": "🌐 Dashboard en Vivo", "url": "https://rey-taco-picks-web.onrender.com/"}
+                    {"text": "🌐 Dashboard en Vivo", "url": "https://reytacopicks.com/"}
                 ]
             ]
         }
@@ -1497,7 +1490,7 @@ def _enviar_telegram(picks):
                     {"text": "📲 Apostar en Playdoit", "url": "https://www.playdoit.mx/es/"}
                 ],
                 [
-                    {"text": "🌐 Ver Todos los Picks en la Web", "url": "https://rey-taco-picks-web.onrender.com/"}
+                    {"text": "🌐 Ver Todos los Picks en la Web", "url": "https://reytacopicks.com/"}
                 ]
             ]
         }
