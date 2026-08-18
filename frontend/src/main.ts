@@ -623,6 +623,18 @@ codeForm?.addEventListener('submit', (e) => {
   }
 });
 
+function updateAdsVisibility() {
+  const isVip = isSubscribed || currentUser?.is_premium || currentUser?.email === 'carlosds1017@gmail.com';
+  const adContainers = document.querySelectorAll('.ad-container');
+  adContainers.forEach((ad: any) => {
+    if (isVip) {
+      ad.style.display = 'none';
+    } else {
+      ad.style.display = 'block';
+    }
+  });
+}
+
 function updateAuthHeaderState() {
   if (currentUser?.email === 'carlosds1017@gmail.com') {
     loginBtn.textContent = '👑 Admin (Carlos)';
@@ -641,6 +653,7 @@ function updateAuthHeaderState() {
     premiumBadge.innerHTML = 'Acceso Premium';
     premiumBadge.classList.remove('badge-gold');
   }
+  updateAdsVisibility();
 }
 
 // Auth Logic (Supabase + Admin Bypass)
@@ -998,6 +1011,7 @@ initDailyVerseBanner('daily-verse-container');
 fetchPicks();
 fetchHistory();
 loadTickets();
+updateAdsVisibility();
 
 async function loadTickets() {
   const grid = document.getElementById('tickets-grid');
