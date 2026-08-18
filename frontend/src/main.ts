@@ -1014,7 +1014,7 @@ async function loadTickets() {
     '/tickets/ticket_1786857038.jpg'
   ];
 
-  fetch('/tickets/manifest.json')
+  fetch('/tickets/manifest.json?v=' + Date.now(), { cache: 'no-store' })
     .then(r => r.json())
     .then(files => {
       if (Array.isArray(files) && files.length > 0) {
