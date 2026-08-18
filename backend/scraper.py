@@ -363,8 +363,19 @@ def obtener_eventos_odds_api():
     if not ODDS_API_KEY:
         return []
     
-    print("\n🌐 Conectando satélite The Odds API (Liga MX, MLB, La Liga, MLS, Premier, NFL)...")
-    sports = ['soccer_mexico_ligamx', 'baseball_mlb', 'soccer_spain_la_liga', 'soccer_usa_mls', 'soccer_epl', 'americanfootball_nfl']
+    print("\n🌐 Conectando satélite The Odds API (Champions League, Liga MX, MLB, La Liga, MLS, Premier, NFL)...")
+    sports = [
+        'soccer_uefa_champs_league_qualification',
+        'soccer_uefa_champs_league',
+        'soccer_uefa_europa_league',
+        'soccer_conmebol_copa_libertadores',
+        'soccer_mexico_ligamx',
+        'baseball_mlb',
+        'soccer_spain_la_liga',
+        'soccer_epl',
+        'soccer_usa_mls',
+        'americanfootball_nfl'
+    ]
     eventos_api = []
     
     from datetime import datetime, timezone, timedelta
@@ -418,7 +429,7 @@ def obtener_eventos_odds_api():
                     
                     nombre = f"{home} vs {away}"
                     if not any(x["partido"] == nombre for x in eventos_api):
-                        deporte_cat = "Liga MX" if "ligamx" in s else ("MLB" if "baseball" in s else ("La Liga" if "spain" in s else ("NFL" if "nfl" in s else "Fútbol")))
+                        deporte_cat = "UEFA Champions League" if "champs" in s else ("Liga MX" if "ligamx" in s else ("MLB" if "baseball" in s else ("La Liga" if "spain" in s else ("Copa Libertadores" if "libertadores" in s else ("NFL" if "nfl" in s else "Fútbol")))))
                         eventos_api.append({
                             "categoria": deporte_cat,
                             "partido": nombre,
