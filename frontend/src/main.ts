@@ -1003,32 +1003,30 @@ async function loadTickets() {
   const grid = document.getElementById('tickets-grid');
   if (!grid) return;
   
+  const fallbackTickets = [
+    '/tickets/ticket_1787030886.jpg',
+    '/tickets/ticket_1787030798.jpg',
+    '/tickets/ticket_1787030974.jpg',
+    '/tickets/ticket_1786980498.jpg',
+    '/tickets/ticket_1786980544.jpg',
+    '/tickets/ticket_1786857083.jpg',
+    '/tickets/ticket_1786856862.jpg',
+    '/tickets/ticket_1786857038.jpg'
+  ];
+
   fetch('/tickets/manifest.json')
     .then(r => r.json())
     .then(files => {
       if (Array.isArray(files) && files.length > 0) {
-        // Filtrar y deduplicar estrictamente
         const uniqueFiles = Array.from(new Set(files));
         const ticketSources = uniqueFiles.map((f: any) => f.startsWith('http') ? f : `/tickets/${f}`);
         renderTickets(ticketSources);
       } else {
-        renderTickets([
-          '/tickets/ticket_1786857083.jpg',
-          '/tickets/ticket_1786856862.jpg',
-          '/tickets/ticket_1786980498.jpg',
-          '/tickets/ticket_1786980544.jpg',
-          '/tickets/ticket_1786856993.jpg'
-        ]);
+        renderTickets(fallbackTickets);
       }
     })
     .catch(() => {
-      renderTickets([
-        '/tickets/ticket_1786857083.jpg',
-        '/tickets/ticket_1786856862.jpg',
-        '/tickets/ticket_1786980498.jpg',
-        '/tickets/ticket_1786980544.jpg',
-        '/tickets/ticket_1786856993.jpg'
-      ]);
+      renderTickets(fallbackTickets);
     });
 }
 
@@ -1054,17 +1052,24 @@ function renderTickets(sources: string[]) {
 }
 
 // Ticket Lightbox Zoom
+const ticketModalEl = document.getElementById('ticket-modal');
 (window as any).openTicketZoom = function(src: string) {
-  const modal = document.getElementById('ticket-modal')!;
+  if (!ticketModalEl) return;
   const img = document.getElementById('ticket-zoom-img') as HTMLImageElement;
   img.src = src;
-  modal.classList.remove('hidden');
+  ticketModalEl.classList.remove('hidden');
 };
 
 const closeTicketModal = document.getElementById('close-ticket-modal')!;
-closeTicketModal.addEventListener('click', () => {
-  document.getElementById('ticket-modal')!.classList.add('hidden');
-});
+if (closeTicketModal && ticketModalEl) {
+  closeTicketModal.addEventListener('click', () => {
+    ticketModalEl.classList.add('hidden');
+  });
+
+  ticketModalEl.addEventListener('click', (e) => {
+    if (e.target === ticketModalEl) ticketModalEl.classList.add('hidden');
+  });
+}
 
 // ============================================================
 //  CALCULADORA DE STAKE & BANKROLL
