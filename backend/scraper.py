@@ -588,24 +588,35 @@ def fase2_comparacion_mercado(partidos_data):
 def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
     """Ejecuta la llamada a Groq rotando inteligentemente con reintentos y pausa backoff."""
     modelos = [
+        "qwen/qwen3.6-27b",
+        "groq/compound",
         "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
-        "groq/compound-mini"
+        "openai/gpt-oss-20b"
     ]
+    import re
+    # Truncar mensajes excesivamente largos para evitar error 413
+    mensajes_limpios = []
+    for m in messages:
+        c = m.get("content", "")
+        if len(c) > 6000:
+            c = c[:6000] + "\n[...datos sintetizados...]"
+        mensajes_limpios.append({"role": m["role"], "content": c})
+
     for intento in range(2):
         for modelo in modelos:
             try:
                 resp = client.chat.completions.create(
-                    messages=messages,
+                    messages=mensajes_limpios,
                     model=modelo,
                     temperature=temperature
                 ).choices[0].message.content.strip()
                 if resp:
+                    resp = re.sub(r'<think>.*?</think>', '', resp, flags=re.DOTALL).strip()
                     return resp
             except Exception as e:
                 if "429" in str(e) or "rate_limit" in str(e).lower():
-                    print(f"   ⚠️ Rate limit en {modelo}. Pausando 4s para reintentar...")
-                    time.sleep(4)
+                    print(f"   ⚠️ Rate limit en {modelo}. Pausando 3s para reintentar...")
+                    time.sleep(3)
                     continue
                 else:
                     print(f"   ⚠️ Nota en Groq ({modelo}): {e}")

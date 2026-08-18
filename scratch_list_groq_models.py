@@ -1,16 +1,17 @@
 import os
+import sys
 from groq import Groq
 from dotenv import load_dotenv
 
+sys.stdout.reconfigure(encoding='utf-8')
 load_dotenv('backend/.env')
-api_key = os.getenv("GROQ_API_KEY")
-print("API Key exists:", bool(api_key))
-client = Groq(api_key=api_key)
+key = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=key)
 
 try:
     models = client.models.list()
-    print("Available Groq Models on this key:")
+    print("Modelos disponibles en Groq:")
     for m in models.data:
         print(f" - {m.id}")
 except Exception as e:
-    print(f"Error listing models: {e}")
+    print(f"Error listando modelos: {e}")
