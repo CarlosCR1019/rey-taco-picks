@@ -504,11 +504,9 @@ def fase1_escaneo_superficie(driver):
         driver.get("https://www.playdoit.mx/es/")
         time.sleep(8)
         
-        # Configuración inicial: Formato Decimal y Pestaña 'Hoy'
+        # Configuración inicial: Formato Decimal (sin restringir a solo hoy para captar Champions/mañana)
         click_decimal_toggle(driver)
-        time.sleep(1)
-        click_tab_hoy(driver)
-        time.sleep(3)
+        time.sleep(2)
         
         # Esperar hasta que Altenar termine de renderizar los eventos en pantalla
         eventos_iniciales = []
