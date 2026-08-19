@@ -745,10 +745,10 @@ def fase2_comparacion_mercado(partidos_data):
 def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
     """Ejecuta la llamada a Groq rotando inteligentemente con reintentos y pausa backoff."""
     modelos = [
-        "qwen/qwen3.6-27b",
-        "groq/compound",
-        "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b"
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "mixtral-8x7b-32768",
+        "gemma2-9b-it"
     ]
     import re
     # Truncar mensajes excesivamente largos para evitar error 413
