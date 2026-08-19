@@ -751,7 +751,7 @@ function getSportColorClass(sport: string) {
   if (s.includes('parlay') || s.includes('combinad')) return 'tag-gold';
   if (s.includes('esquina') || s.includes('córner') || s.includes('corner')) return 'tag-purple';
   if (s.includes('combo') || s.includes('total') || s.includes('over') || s.includes('under')) return 'tag-cyan';
-  if (s.includes('fútbol') || s.includes('futbol') || s.includes('soccer') || s.includes('liga mx')) return 'tag-green';
+  if (s.includes('fútbol') || s.includes('futbol') || s.includes('soccer') || s.includes('liga mx') || s.includes('champions') || s.includes('uefa') || s.includes('europa') || s.includes('libertadores') || s.includes('la liga') || s.includes('premier')) return 'tag-green';
   if (s.includes('mlb') || s.includes('beisbol') || s.includes('baseball')) return 'tag-blue';
   if (s.includes('nfl') || s.includes('americano') || s.includes('football')) return 'tag-orange';
   if (s.includes('mma') || s.includes('boxeo') || s.includes('ufc')) return 'tag-red';
@@ -766,7 +766,11 @@ function filterAndRenderPicks() {
   if (currentFilter === 'futbol') {
     filtered = allPicksData.filter(p => {
       const cat = (p.categoria || p.deporte || '').toLowerCase();
-      return (cat.includes('fútbol') || cat.includes('futbol') || cat.includes('liga mx')) && !p.es_parlay && !cat.includes('esquina') && !cat.includes('córner');
+      const isSoccer = cat.includes('fútbol') || cat.includes('futbol') || cat.includes('liga mx') || 
+                       cat.includes('champions') || cat.includes('uefa') || cat.includes('europa') || 
+                       cat.includes('libertadores') || cat.includes('la liga') || cat.includes('premier') ||
+                       cat.includes('serie a') || cat.includes('soccer') || cat.includes('primera');
+      return isSoccer && !p.es_parlay && !cat.includes('esquina') && !cat.includes('córner');
     });
   } else if (currentFilter === 'corners') {
     filtered = allPicksData.filter(p => {
