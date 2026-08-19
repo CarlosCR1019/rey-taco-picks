@@ -993,17 +993,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
 [
     {{
         "categoria": "Tiros de Esquina",
-        "partido": "Nombre Real Local vs Nombre Real Visitante",
-        "horario": "Horario Real del partido",
-        "pick": "Más de 8.5 Tiros de Esquina",
-        "cuota": "1.75",
-        "confianza": "90%",
-        "razonamiento": "Explicación detallada de por qué se eligió este pick según estadísticas y cuotas...",
-        "es_parlay": false,
-        "tiene_valor": true,
-        "odds_mercado": "1.70"
-    }}
-]
+Devuelve ÚNICAMENTE un JSON array válido.
 """
     try:
         resp_final = ejecutar_groq_con_fallback(client, [
@@ -1011,18 +1001,25 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
             {"role": "user", "content": prompt_juez}
         ], temperature=0.15)
 
+        # Extractor ultra robusto de JSON tolerante a texto alrededor
         clean_resp = re.sub(r'```(?:json)?', '', resp_final).strip()
-        match_json = re.search(r'(\[\s*\{.*\}\s*\])', clean_resp, re.DOTALL)
-        if match_json:
-            raw_picks = json.loads(match_json.group(1))
-        else:
-            inicio = clean_resp.find('[')
-            fin = clean_resp.rfind(']') + 1
-            raw_picks = json.loads(clean_resp[inicio:fin])
+        raw_picks = []
+        try:
+            idx1 = clean_resp.find('[')
+            idx2 = clean_resp.rfind(']')
+            if idx1 != -1 and idx2 != -1:
+                raw_picks = json.loads(clean_resp[idx1:idx2+1])
+        except Exception:
+            for m in re.finditer(r'\{[^{}]*\}', clean_resp, re.DOTALL):
+                try:
+                    obj = json.loads(m.group(0))
+                    if 'pick' in obj or 'partido' in obj:
+                        raw_picks.append(obj)
+                except Exception:
+                    pass
         
         # -------------------------------------------------------------
         # VALIDACIÓN Y FILTRADO DETERMINISTA ANTI-ALUCINACIONES (PYTHON)
-        # Garantiza que el 100% de los picks sean reales de hoy y con horario/cuota exacta.
         # -------------------------------------------------------------
         picks_validados = []
         for p in raw_picks:
@@ -1031,7 +1028,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
             
             # 1. Verificar existencia contra partidos reales escaneados
             match_encontrado = None
-            for dp in datos_profundos:
+            for dp in (datos_profundos + partidos_data):
                 dp_partido = dp.get('partido', '').lower()
                 dp_local = dp.get('local', '').lower()
                 dp_vis = dp.get('visitante', '').lower()
@@ -1043,7 +1040,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                     match_encontrado = dp
                     break
             
-            # Si es parlay, validar que TODAS las partes existan en la lista de hoy
+            # Si es parlay, validar que TODAS las partes existan
             if p.get('es_parlay'):
                 partes = re.split(r'[+&/]|(?:\s+y\s+)', p_partido, flags=re.IGNORECASE)
                 todas_partes_validas = True
@@ -1055,64 +1052,41 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                         (dp.get('visitante', '') and len(dp.get('visitante', '')) > 3 and dp.get('visitante', '').lower() in parte.lower()) or
                         (dp.get('partido', '').lower() in parte.lower()) or
                         (parte.lower() in dp.get('partido', '').lower())
-                        for dp in datos_profundos
+                        for dp in (datos_profundos + partidos_data)
                     )
                     if not parte_existe:
                         todas_partes_validas = False
                         break
                 
                 if todas_partes_validas and len(partes) >= 2:
-                    match_encontrado = datos_profundos[0] if datos_profundos else {}
+                    match_encontrado = datos_profundos[0] if datos_profundos else (partidos_data[0] if partidos_data else {})
                 else:
                     match_encontrado = None
             
             if not match_encontrado:
-                print(f"   🛑 DESCARTADO (Partido o pierna de parlay no existe en Playdoit hoy): {p_partido}")
+                print(f"   🛑 DESCARTADO (Partido o pierna de parlay no existe en catálogo): {p_partido}")
                 continue
 
-            # 2. Corregir y forzar Horario Real de Playdoit y verificar que sea futuro en CDMX
+            # 2. Corregir y forzar Horario Real y verificar que sea futuro en CDMX
             if match_encontrado and match_encontrado.get('horario'):
                 p['horario'] = match_encontrado.get('horario')
             
             es_valido_tiempo, horario_limpio = es_partido_futuro_valido(p.get('horario', 'Hoy'))
             if not es_valido_tiempo:
-                print(f"   🛑 DESCARTADO (El partido ya inició o terminó en CDMX): {p_partido} [{p.get('horario')}]")
+                print(f"   🛑 DESCARTADO (El partido ya inició): {p_partido} [{p.get('horario')}]")
                 continue
             p['horario'] = horario_limpio
             
-            # 3. Extraer cuota exacta de la línea de Playdoit (Córners, Goles, etc.)
-            if match_encontrado:
-                mercados = match_encontrado.get('mercados_profundos', '')
-                p_pick_lower = p.get('pick', '').lower()
-                
-                if 'córner' in p_pick_lower or 'esquina' in p_pick_lower or 'gol' in p_pick_lower or 'carrera' in p_pick_lower:
-                    match_line = re.search(r'(\d+\.5)', p_pick_lower)
-                    if match_line:
-                        num_line = match_line.group(1)
-                        tipo = "menos" if ("menos" in p_pick_lower or "under" in p_pick_lower) else "m[aá]s"
-                        pattern = rf'(?:{tipo}\s+de)\s+{re.escape(num_line)}\s+([+-]?\d+(?:\.\d+)?)'
-                        found = re.search(pattern, mercados, re.IGNORECASE)
-                        if found:
-                            p['cuota'] = found.group(1)
-                elif ('gana' in p_pick_lower or 'ml' in p_pick_lower) and not p.get('es_parlay'):
-                    cuotas_sup = match_encontrado.get('cuotas_superficie', [])
-                    if len(cuotas_sup) >= 1:
-                        if 'local' in p_pick_lower or match_encontrado.get('local', '').lower() in p_pick_lower:
-                            p['cuota'] = cuotas_sup[0]
-                        elif len(cuotas_sup) >= 3 and ('visitante' in p_pick_lower or match_encontrado.get('visitante', '').lower() in p_pick_lower):
-                            p['cuota'] = cuotas_sup[2]
-
             # 3. Limpieza y Normalización Matemática de Cuota
             raw_c = str(p.get('cuota', '1.85')).strip()
-            # Extraer posibles formatos americanos como "-145" o "-250" -> 1.68 o 1.40
             match_odd = re.search(r'([+-]?\d+(?:\.\d+)?)', raw_c)
             if match_odd:
                 val_odd_str = match_odd.group(1)
                 try:
                     val_odd = float(val_odd_str)
-                    if val_odd > 50:  # Momio positivo americano ej +115 -> 2.15
+                    if val_odd > 50:
                         p['cuota'] = f"{round((val_odd / 100) + 1, 2):.2f}"
-                    elif val_odd < -50:  # Momio negativo americano ej -145 -> 1.68
+                    elif val_odd < -50:
                         p['cuota'] = f"{round((100 / abs(val_odd)) + 1, 2):.2f}"
                     elif val_odd >= 1.01:
                         p['cuota'] = f"{val_odd:.2f}"
@@ -1123,7 +1097,6 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
             else:
                 p['cuota'] = "1.85"
             
-            # 4. Asegurar que haya razonamiento
             if not p.get('razonamiento') or len(p.get('razonamiento', '')) < 10:
                 p['razonamiento'] = f"Consenso IA: Ventaja matemática +EV detectada con alta probabilidad según métricas de Playdoit."
 
@@ -1131,12 +1104,9 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
 
         if len(picks_validados) >= 3:
             picks = picks_validados
-            print(f"\n   🏆 CARTERA APROBADA ({len(picks)} selecciones reales validadas por IA):")
+            print(f"\n   🏆 CARTERA APROBADA ({len(picks)} selecciones validadas):")
             for p in picks:
-                valor = " 💎 VALOR" if p.get('tiene_valor') else ""
-                parlay = " 🔗 PARLAY" if p.get('es_parlay') else ""
-                horario = f" [{p.get('horario')}]" if p.get('horario') else ""
-                print(f"      → [{p.get('categoria')}]{horario} {p.get('partido')} | {p.get('pick')} @ {p.get('cuota')}{valor}{parlay}")
+                print(f"      → [{p.get('categoria')}] {p.get('partido')} | {p.get('pick')} @ {p.get('cuota')}")
             return picks
         else:
             raise ValueError(f"Solo {len(picks_validados)} picks validados, activando generador de respaldo...")
@@ -1144,16 +1114,18 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
     except Exception as e:
         print(f"   ⚠️ Nota en síntesis de debate IA: {e}. Activando generador de cartera cuantitativa...")
         
-        # Generador de respaldo cuantitativo 100% DINÁMICO desde datos reales de Playdoit de HOY
+        # Generador de respaldo cuantitativo 100% DINÁMICO e infalible
         picks_fallback = []
         parlay_candidatos = []
         
-        for dp in datos_profundos:
+        pool_partidos = list(datos_profundos) + [p for p in partidos_data if not any(x['partido'] == p['partido'] for x in datos_profundos)]
+        
+        for dp in pool_partidos:
             partido = dp.get('partido', '')
             local = dp.get('local', '')
             vis = dp.get('visitante', '')
             horario = dp.get('horario', 'Hoy')
-            mercados = dp.get('mercados_profundos', '')
+            mercados = dp.get('mercados_profundos', '') or dp.get('info_texto', '')
             cuotas_sup = dp.get('cuotas_superficie', [])
             categoria = dp.get('categoria', 'Liga MX')
             
@@ -1161,7 +1133,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
             if not es_valido: continue
             
             # A) Totales Over/Under (Córners, Goles en fútbol o Carreras en MLB)
-            match_totals = re.search(r'(?:más\s+de|over)\s+(\d+\.5)\s*(?:@\s*)?([+-]?\d+(?:\.\d+)?)', mercados, re.IGNORECASE)
+            match_totals = re.search(r'(?:más\s+de|over)\s*\(?\s*(\d+\.5)\s*\)?\s*(?:@\s*)?([+-]?\d+(?:\.\d+)?)', mercados, re.IGNORECASE)
             if match_totals and len(picks_fallback) < 6:
                 linea = match_totals.group(1)
                 raw_c = match_totals.group(2)
@@ -1175,6 +1147,7 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                 p_item = {
                     "categoria": cat_nombre,
                     "partido": partido,
+                    "local": local or partido.split(' vs ')[0],
                     "horario": horario_limpio,
                     "pick": f"Más de {linea} {unidad}",
                     "cuota": f"{c_val:.2f}",
@@ -1185,17 +1158,18 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                     "odds_mercado": f"{max(1.30, c_val - 0.05):.2f}"
                 }
                 picks_fallback.append(p_item)
-                if c_val <= 1.75:
+                if c_val <= 1.85:
                     parlay_candidatos.append(p_item)
             
             # B) Buscar Línea de Dinero (ML) o Hándicap
             if len(cuotas_sup) >= 1 and len(picks_fallback) < 6:
                 try:
                     c_local = float(cuotas_sup[0])
-                    if 1.30 <= c_local <= 1.85:
+                    if 1.20 <= c_local <= 2.25:
                         p_ml = {
                             "categoria": categoria,
                             "partido": partido,
+                            "local": local or partido.split(' vs ')[0],
                             "horario": horario_limpio,
                             "pick": f"{local or partido.split(' vs ')[0]} Gana Directo",
                             "cuota": f"{c_local:.2f}",
@@ -1203,11 +1177,11 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
                             "razonamiento": f"Consenso Quant: Ventaja táctica y solvencia proyectada respaldada por cuotas de mercado.",
                             "es_parlay": False,
                             "tiene_valor": True,
-                            "odds_mercado": f"{max(1.25, c_local - 0.05):.2f}"
+                            "odds_mercado": f"{max(1.20, c_local - 0.05):.2f}"
                         }
                         if not any(x['partido'] == partido for x in picks_fallback):
                             picks_fallback.append(p_ml)
-                        if c_local <= 1.65 and not any(x['partido'] == partido for x in parlay_candidatos):
+                        if c_local <= 1.80 and not any(x['partido'] == partido for x in parlay_candidatos):
                             parlay_candidatos.append(p_ml)
                 except:
                     pass
@@ -1217,14 +1191,16 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto
             p1 = parlay_candidatos[0]
             p2 = parlay_candidatos[1]
             cuota_parlay = float(p1['cuota']) * float(p2['cuota'])
+            loc1 = p1.get('local') or p1['partido'].split(' vs ')[0]
+            loc2 = p2.get('local') or p2['partido'].split(' vs ')[0]
             picks_fallback.append({
                 "categoria": "Parlay Seguro",
                 "partido": f"{p1['partido']} + {p2['partido']}",
                 "horario": f"{p1.get('horario', 'Hoy')} / {p2.get('horario', 'Hoy')}",
-                "pick": f"{p1['partido'].split(' vs ')[0]} ({p1['pick']}) & {p2['partido'].split(' vs ')[0]} ({p2['pick']})",
+                "pick": f"{loc1} ({p1['pick']}) & {loc2} ({p2['pick']})",
                 "cuota": f"{cuota_parlay:.2f}",
                 "confianza": "93%",
-                "razonamiento": "Combinada estadística de alta correlación y bajo riesgo seleccionada de las mejores líneas de Playdoit.",
+                "razonamiento": "Combinada matemática de alta correlación positiva y riesgo controlado.",
                 "es_parlay": True,
                 "tiene_valor": True,
                 "odds_mercado": f"{max(1.80, cuota_parlay - 0.10):.2f}"
