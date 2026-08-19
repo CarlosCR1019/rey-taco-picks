@@ -640,11 +640,12 @@ def fase1_escaneo_superficie(driver):
         for cat in categorias:
             print(f"   Explorando: {cat}...", end=" ")
             if click_category(driver, cat):
+                time.sleep(2.5)
                 eventos = []
                 for _ in range(4):
-                    time.sleep(1.5)
                     eventos = extract_events_from_page(driver)
                     if eventos: break
+                    time.sleep(1.5)
                 nuevos = 0
                 for e in eventos:
                     nombre = f"{e['local']} vs {e['visitante']}"
@@ -994,11 +995,11 @@ def fase4_inmersion(driver, objetivos, partidos_data):
                 "visitante": base.get('visitante', ''),
                 "horario": base.get('horario', 'Hoy'),
                 "cuotas_superficie": base.get('cuotas_superficie', []),
-                "mercados_profundos": mercados_texto[:8000]
+                "mercados_profundos": mercados_texto[:1200]
             })
         else:
             if base.get('mercados_reales'):
-                base['mercados_profundos'] = "\n".join(base['mercados_reales'])
+                base['mercados_profundos'] = "\n".join(base['mercados_reales'])[:1200]
                 print(f"      🎯 Usando {len(base['mercados_reales'])} mercados verificados del satélite.")
             else:
                 print(f"      ⚠️ No se pudo entrar al partido, usando cuotas de superficie.")
