@@ -545,8 +545,11 @@ def fase1_escaneo_superficie(driver):
         for cat in categorias:
             print(f"   Explorando: {cat}...", end=" ")
             if click_category(driver, cat):
-                time.sleep(3)
-                eventos = extract_events_from_page(driver)
+                eventos = []
+                for _ in range(4):
+                    time.sleep(1.5)
+                    eventos = extract_events_from_page(driver)
+                    if eventos: break
                 nuevos = 0
                 for e in eventos:
                     nombre = f"{e['local']} vs {e['visitante']}"
