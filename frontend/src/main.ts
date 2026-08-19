@@ -784,13 +784,26 @@ function filterAndRenderPicks() {
     filtered = allPicksData.filter(p => {
       const cat = (p.categoria || p.deporte || '').toLowerCase();
       const partido = (p.partido || '').toLowerCase();
-      return (cat.includes('liga mx') || cat.includes('ligamx') || 
-              partido.includes('américa') || partido.includes('chivas') || partido.includes('cruz azul') || 
-              partido.includes('tigres') || partido.includes('monterrey') || partido.includes('pumas') || 
-              partido.includes('toluca') || partido.includes('pachuca') || partido.includes('necaxa') || 
-              partido.includes('leon') || partido.includes('atlas') || partido.includes('puebla') || 
-              partido.includes('juárez') || partido.includes('san luis') || partido.includes('tijuana') || 
-              partido.includes('mazatlán') || partido.includes('santos')) && !p.es_parlay;
+      const isMlsOrEurope = partido.includes('columbus') || partido.includes('montreal') || 
+                            partido.includes('inter miami') || partido.includes('philadelphia') || 
+                            partido.includes('chicago fire') || partido.includes('orlando city') || 
+                            partido.includes('atletico') || partido.includes('atlético') || 
+                            partido.includes('málaga') || partido.includes('malaga');
+      if (isMlsOrEurope) return false;
+      
+      const isLigaMxTeam = partido.includes('américa') || partido.includes('america') || 
+                           partido.includes('chivas') || partido.includes('cruz azul') || 
+                           partido.includes('tigres') || partido.includes('monterrey') || 
+                           partido.includes('pumas') || partido.includes('toluca') || 
+                           partido.includes('pachuca') || partido.includes('necaxa') || 
+                           partido.includes('leon') || partido.includes('león') || 
+                           partido.includes('atlas') || partido.includes('puebla') || 
+                           partido.includes('juárez') || partido.includes('juarez') || 
+                           partido.includes('san luis') || partido.includes('tijuana') || 
+                           partido.includes('mazatlán') || partido.includes('mazatlan') || 
+                           partido.includes('santos') || partido.includes('querétaro') || 
+                           partido.includes('queretaro') || partido.includes('atlante');
+      return (cat === 'liga mx' || (cat.includes('liga mx') && !cat.includes('mlb') && !cat.includes('fútbol')) || isLigaMxTeam) && !p.es_parlay;
     });
   } else if (currentFilter === 'futbol') {
     filtered = allPicksData.filter(p => {

@@ -48,6 +48,40 @@ def normalizar_cuota_decimal(val, default="1.85"):
     except Exception:
         return default
 
+def inferir_categoria_deporte(local, visitante, fallback="Fútbol Internacional"):
+    """Infiere la liga y deporte exacto según los equipos involucrados."""
+    txt = f"{local} {visitante}".lower()
+    
+    # 1. UEFA Champions League
+    if any(w in txt for w in ['zagreb', 'qarabag', 'bodø', 'bodo', 'red star', 'estrella roja', 'lille', 'slavia', 'young boys', 'galatasaray', 'midtjylland', 'slovan', 'malmö', 'malmo', 'sparta', 'dynamo kyiv', 'kiev', 'salzburg', 'champions']):
+        return "UEFA Champions League"
+        
+    # 2. KBO (Béisbol Coreano)
+    if any(w in txt for w in ['kia tigers', 'kiwoom', 'lg twins', 'ssg landers', 'samsung lions', 'doosan bears', 'nc dinos', 'hanwha eagles', 'kt wiz', 'lotte giants', 'kbo', 'landers', 'wiz']):
+        return "KBO"
+        
+    # 3. MLB (Grandes Ligas)
+    if any(w in txt for w in ['yankees', 'dodgers', 'red sox', 'white sox', 'cubs', 'mets', 'padres', 'braves', 'twins', 'orioles', 'guardians', 'giants', 'astros', 'angels', 'rangers', 'nationals', 'mariners', 'brewers', 'blue jays', 'rays', 'cardinals', 'reds', 'marlins', 'phillies', 'diamondbacks', 'rockies', 'pirates', 'tigers', 'mlb']):
+        return "MLB"
+        
+    # 4. Liga MX
+    if any(w in txt for w in ['américa', 'america', 'chivas', 'guadalajara', 'cruz azul', 'tigres uanl', 'monterrey', 'rayados', 'pumas', 'unam', 'toluca', 'pachuca', 'necaxa', 'león', 'leon', 'atlas', 'puebla', 'juárez', 'juarez', 'san luis', 'tijuana', 'xolos', 'mazatlán', 'mazatlan', 'santos laguna', 'querétaro', 'queretaro', 'atlante']):
+        return "Liga MX"
+        
+    # 5. MLS
+    if any(w in txt for w in ['columbus crew', 'montreal', 'inter miami', 'philadelphia union', 'chicago fire', 'orlando city', 'lafc', 'galaxy', 'sounders', 'timbers', 'atlanta united', 'austin', 'mls']):
+        return "MLS"
+        
+    # 6. Fútbol Internacional / Ligas Europeas
+    if any(w in txt for w in ['atlético de madrid', 'atletico', 'málaga', 'malaga', 'real madrid', 'barcelona', 'arsenal', 'manchester', 'chelsea', 'liverpool', 'inter milan', 'milan', 'juventus', 'roma', 'napoli', 'psg', 'bayern', 'dortmund', 'benfica', 'porto', 'sporting', 'boca', 'river', 'flamengo', 'palmeiras']):
+        return "Fútbol Internacional"
+        
+    # 7. NFL
+    if any(w in txt for w in ['chiefs', '49ers', 'cowboys', 'eagles', 'bills', 'ravens', 'packers', 'texans', 'dolphins', 'patriots', 'steelers', 'nfl']):
+        return "NFL"
+        
+    return fallback
+
 # ============================================================
 #  FASE 0: CONFIGURACIÓN DEL NAVEGADOR
 # ============================================================
@@ -528,28 +562,28 @@ def fase1_escaneo_superficie(driver):
                 break
             time.sleep(2)
             
-        print(f"   📡 Cartelera 'Hoy' detectada con {len(eventos_iniciales)} eventos principales.")
+        print(f"   📡 Cartelera detectada con {len(eventos_iniciales)} eventos principales.")
         for e in eventos_iniciales:
             nombre = f"{e['local']} vs {e['visitante']}"
             es_valido_tiempo, horario_limpio = es_partido_futuro_valido(e.get('horario', 'Hoy'))
             if not es_valido_tiempo:
                 continue
+            cat_real = inferir_categoria_deporte(e['local'], e['visitante'])
             if not any(x["partido"] == nombre for x in partidos_data):
                 partidos_data.append({
-                    "categoria": "Liga MX / Fútbol / MLB",
+                    "categoria": cat_real,
                     "partido": nombre,
                     "local": e['local'],
                     "visitante": e['visitante'],
                     "horario": horario_limpio,
                     "cuotas_superficie": e.get('cuotas', [])[:4],
-                    "info_texto": f"Hoy: {nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
+                    "info_texto": f"{cat_real}: {nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
                 })
         
-        # 2. Exploración de categorías específicas adicionales
+        # 2. Exploración de categorías específicas adicionales (Champions, MLB, KBO, Liga MX, MLS, etc.)
         categorias = [
-            'UEFA Champions League', 'Liga MX', 'MLB', 'KBO', 'La Liga', 
-            'UEFA Europa League', 'Copa Libertadores', 'Primeira Liga', 
-            'Liga Profesional', 'Primera A', 'MLS', 'NFL'
+            'UEFA Champions League', 'KBO', 'MLB', 'Liga MX', 'La Liga', 
+            'UEFA Europa League', 'Copa Libertadores', 'MLS', 'NFL'
         ]
         
         for cat in categorias:
@@ -567,15 +601,16 @@ def fase1_escaneo_superficie(driver):
                     if not es_valido_tiempo:
                         continue
                     
+                    cat_real = inferir_categoria_deporte(e['local'], e['visitante'], fallback=cat)
                     if not any(x["partido"] == nombre for x in partidos_data):
                         partidos_data.append({
-                            "categoria": cat,
+                            "categoria": cat_real,
                             "partido": nombre,
                             "local": e['local'],
                             "visitante": e['visitante'],
                             "horario": horario_limpio,
                             "cuotas_superficie": e.get('cuotas', [])[:4],
-                            "info_texto": f"{cat}: {nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
+                            "info_texto": f"{cat_real}: {nombre}. Horario: {horario_limpio}. Cuotas Playdoit: {' | '.join(e.get('cuotas', []))}"
                         })
                         nuevos += 1
                 print(f"✅ {nuevos} nuevos futuros" if nuevos else "⏭️ sin nuevos")
@@ -1049,10 +1084,13 @@ Eres el "Chief Odds Arbiter" de Rey Taco Picks. Emite la cartera oficial del dí
 REGLAS CRÍTICAS ESTRICTAS (CERO TOLERANCIA):
 1. SELECCIONA ÚNICAMENTE PARTIDOS QUE ESTÉN EN LA LISTA DE DATOS REALES EXTRAÍDOS HOY. ESTÁ TOTALMENTE PROHIBIDO INVENTAR O USAR PARTIDOS DE OTROS DÍAS.
 2. Utiliza exactamente el horario y nombres de equipos que vienen en los datos reales.
-3. DIVERSIDAD DE MERCADOS: Incluye opciones de Tiros de Esquina, Goles (Over/Under), Doble Oportunidad, Béisbol MLB y al final 2 Parlays combinados.
-4. MÁXIMO 2 picks de ganador directo (ML) en toda la cartera.
-5. Cuotas estrictamente en formato decimal (ej: 1.85, 1.62, 2.18).
-6. Explica claramente en el campo "razonamiento" el por qué táctico/estadístico de cada elección.
+3. DIVERSIDAD MULTIDEPORTE OBLIGATORIA:
+   - Incluye al menos 1 o 2 selecciones de UEFA Champions League.
+   - Incluye al menos 1 o 2 selecciones de Béisbol KBO (Corea del Sur para madrugadores).
+   - Incluye al menos 1 o 2 selecciones de Béisbol MLB.
+   - Incluye al menos 1 o 2 Parlays combinados de alto valor (+EV).
+4. Cuotas estrictamente en formato decimal (ej: 1.85, 1.62, 2.18, 3.11).
+5. Explica claramente en el campo "razonamiento" el por qué táctico/estadístico de cada elección.
 
 DATOS REALES DISPONIBLES DE PLAYDOIT HOY:
 {datos_partidos_str}
@@ -1157,9 +1195,15 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
                 print(f"   🛑 DESCARTADO (Partido o pierna de parlay no existe en catálogo): {p_partido}")
                 continue
 
-            # 2. Asignar categoría válida
-            if not p.get('categoria') or str(p.get('categoria')).strip().lower() in ('none', '', 'null'):
-                p['categoria'] = match_encontrado.get('categoria', 'Liga MX / Fútbol')
+            # 2. Asignar categoría exacta
+            if p.get('es_parlay'):
+                p['categoria'] = "Parlays +EV"
+            else:
+                p['categoria'] = inferir_categoria_deporte(
+                    match_encontrado.get('local', ''), 
+                    match_encontrado.get('visitante', ''), 
+                    fallback=match_encontrado.get('categoria', 'Fútbol Internacional')
+                )
 
             # 3. Corregir y forzar Horario Real y verificar que sea futuro en CDMX
             if match_encontrado and match_encontrado.get('horario'):
@@ -1204,36 +1248,36 @@ Devuelve ÚNICAMENTE un JSON array válido con este formato:
             horario = dp.get('horario', 'Hoy')
             mercados = dp.get('mercados_profundos', '') or dp.get('info_texto', '')
             cuotas_sup = dp.get('cuotas_superficie', [])
-            categoria = dp.get('categoria', 'Liga MX')
+            categoria = inferir_categoria_deporte(local, vis, fallback=dp.get('categoria', 'Fútbol Internacional'))
             
             es_valido, horario_limpio = es_partido_futuro_valido(horario)
             if not es_valido: continue
             
-            # A) Totales Over/Under (Córners, Goles en fútbol o Carreras en MLB)
+            # A) Totales Over/Under (Córners, Goles en fútbol o Carreras en MLB/KBO)
             match_totals = re.search(r'(?:más\s+de|over)\s*\(?\s*(\d+\.5)\s*\)?\s*(?:@\s*)?([+-]?\d+(?:\.\d+)?)', mercados, re.IGNORECASE)
-            if match_totals and len(picks_fallback) < 6:
+            if match_totals and len(picks_fallback) < 8:
                 linea = match_totals.group(1)
                 raw_c = match_totals.group(2)
                 c_val_str = normalizar_cuota_decimal(raw_c if raw_c else "1.75")
                 c_val = float(c_val_str)
                 
                 f_linea = float(linea)
-                if categoria == "MLB" or "baseball" in categoria.lower():
+                if categoria in ["MLB", "KBO"] or "baseball" in categoria.lower() or "béisbol" in categoria.lower():
                     if not (6.5 <= f_linea <= 13.5): continue
                     unidad = "Carreras Totales"
-                    cat_nombre = "MLB"
+                    cat_nombre = categoria
                 elif "NFL" in categoria or "football" in categoria.lower():
                     if not (36.5 <= f_linea <= 58.5): continue
                     unidad = "Puntos Totales"
                     cat_nombre = "NFL"
                 else:
-                    # Fútbol
+                    # Fútbol (Champions, Liga MX, MLS, etc.)
                     if 7.5 <= f_linea <= 13.5:
                         unidad = "Tiros de Esquina"
                         cat_nombre = "Tiros de Esquina"
                     elif 1.5 <= f_linea <= 4.5:
                         unidad = "Goles Totales"
-                        cat_nombre = "Goles / Totales"
+                        cat_nombre = categoria
                     else:
                         continue
                 
