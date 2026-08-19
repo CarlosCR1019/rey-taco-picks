@@ -31,6 +31,23 @@ else:
     supabase = None
     print("⚠️ ADVERTENCIA: No se encontraron credenciales de Supabase.")
 
+def normalizar_cuota_decimal(val, default="1.85"):
+    try:
+        val_str = str(val).strip()
+        m = re.search(r'([+-]?\d+(?:\.\d+)?)', val_str)
+        if not m: return default
+        n = float(m.group(1))
+        if n > 50:
+            return f"{round((n / 100) + 1, 2):.2f}"
+        elif n < -50:
+            return f"{round((100 / abs(n)) + 1, 2):.2f}"
+        elif 1.01 <= n <= 50.0:
+            return f"{n:.2f}"
+        else:
+            return default
+    except Exception:
+        return default
+
 # ============================================================
 #  FASE 0: CONFIGURACIÓN DEL NAVEGADOR
 # ============================================================
@@ -1143,8 +1160,9 @@ Devuelve ÚNICAMENTE un JSON array válido.
             if match_totals and len(picks_fallback) < 6:
                 linea = match_totals.group(1)
                 raw_c = match_totals.group(2)
-                c_val = float(raw_c) if raw_c else 1.75
-                if c_val > 50: c_val = (c_val / 100) + 1
+                c_val_str = normalizar_cuota_decimal(raw_c if raw_c else "1.75")
+                c_val = float(c_val_str)
+                
                 f_linea = float(linea)
                 if categoria == "MLB" or "baseball" in categoria.lower():
                     if not (6.5 <= f_linea <= 13.5): continue
@@ -1185,7 +1203,8 @@ Devuelve ÚNICAMENTE un JSON array válido.
             # B) Buscar Línea de Dinero (ML) o Hándicap
             if len(cuotas_sup) >= 1 and len(picks_fallback) < 6:
                 try:
-                    c_local = float(cuotas_sup[0])
+                    c_local_str = normalizar_cuota_decimal(cuotas_sup[0])
+                    c_local = float(c_local_str)
                     if 1.20 <= c_local <= 2.25:
                         p_ml = {
                             "categoria": categoria,
