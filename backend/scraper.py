@@ -238,29 +238,80 @@ def click_decimal_toggle(driver):
 
 def click_category(driver, category):
     """Hace clic en una categoría o liga del menú lateral o barra superior de Playdoit."""
+    catLower = category.lower()
+    
+    # Manejo especializado paso a paso para KBO
+    if 'kbo' in catLower or 'corea' in catLower:
+        try:
+            # 1. Clic en Béisbol
+            s_beis = get_shadow_script() + """
+            try {
+                var shadow = getShadow();
+                if(!shadow) return false;
+                var all = Array.from(shadow.querySelectorAll('*'));
+                var beis = all.find(n => n.children.length === 0 && (n.textContent||'').trim().toLowerCase() === 'béisbol');
+                if (beis) {
+                    var el = beis;
+                    while (el && el !== shadow && !el.className.includes('SportMenuItem') && el.tagName !== 'BUTTON') el = el.parentElement;
+                    (el || beis).click();
+                    return true;
+                }
+                return false;
+            } catch(e) { return false; }
+            """
+            driver.execute_script(s_beis)
+            time.sleep(2)
+            
+            # 2. Clic en Corea del Sur
+            s_corea = get_shadow_script() + """
+            try {
+                var shadow = getShadow();
+                if(!shadow) return false;
+                var all = Array.from(shadow.querySelectorAll('*'));
+                var corea = all.find(n => n.children.length === 0 && ((n.textContent||'').trim().toLowerCase() === 'corea del sur' || (n.textContent||'').trim().toLowerCase() === 'kbo'));
+                if (corea) {
+                    var el = corea;
+                    while (el && el !== shadow && !el.className.includes('SportMenuItem') && !el.className.includes('Category') && el.tagName !== 'BUTTON') el = el.parentElement;
+                    (el || corea).click();
+                    return true;
+                }
+                return false;
+            } catch(e) { return false; }
+            """
+            driver.execute_script(s_corea)
+            time.sleep(2)
+            
+            # 3. Clic en KBO League
+            s_kbo = get_shadow_script() + """
+            try {
+                var shadow = getShadow();
+                if(!shadow) return false;
+                var all = Array.from(shadow.querySelectorAll('*'));
+                var kbo = all.find(n => n.children.length === 0 && ((n.textContent||'').trim().toLowerCase() === 'kbo' || (n.textContent||'').trim().toLowerCase() === 'kbo league'));
+                if (kbo) {
+                    var el = kbo;
+                    while (el && el !== shadow && !el.className.includes('Championship') && !el.className.includes('SportMenuItem') && el.tagName !== 'BUTTON') el = el.parentElement;
+                    (el || kbo).click();
+                    return true;
+                }
+                return false;
+            } catch(e) { return false; }
+            """
+            return driver.execute_script(s_kbo) or True
+        except Exception:
+            pass
+
+    # Navegación general de ligas y torneos
     script = get_shadow_script() + f"""
     try {{
         var shadow = getShadow();
         if(!shadow) return false;
         var allNodes = Array.from(shadow.querySelectorAll('*'));
-        var catLower = '{category.lower()}';
-        
-        // Si es KBO o liga asiática, abrir primero Béisbol si está cerrado
-        if (catLower.includes('kbo') || catLower.includes('corea') || catLower.includes('npb')) {{
-            var beis = allNodes.find(n => n.children.length === 0 && (n.textContent||'').trim().toLowerCase() === 'béisbol');
-            if (beis) {{
-                var elB = beis;
-                while (elB && elB !== shadow && !elB.className.includes('SportMenuItem') && elB.tagName !== 'BUTTON') elB = elB.parentElement;
-                (elB || beis).click();
-            }}
-            allNodes = Array.from(shadow.querySelectorAll('*'));
-        }}
+        var catLower = '{catLower}';
         
         var target = allNodes.find(n => {{
             if (n.children.length > 0) return false;
             var t = (n.textContent || '').trim().toLowerCase();
-            if (catLower.includes('kbo') && (t.includes('kbo') || t.includes('corea del sur') || t.includes('corea') || t.includes('korea'))) return true;
-            if (catLower.includes('npb') && (t.includes('npb') || t.includes('japón') || t.includes('japon'))) return true;
             if (catLower.includes('champions') && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
             if (catLower.includes('europa') && (t.includes('europa league'))) return true;
             if (catLower.includes('libertadores') && (t.includes('libertadores'))) return true;
