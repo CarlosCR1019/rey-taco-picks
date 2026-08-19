@@ -1056,11 +1056,21 @@ DEBATE DE LOS EXPERTOS:
 --- CUOTAS DE MERCADO GLOBAL ---
 {market_context}
 
-Devuelve ÚNICAMENTE un JSON array válido con este formato de ejemplo abstracto:
+Devuelve ÚNICAMENTE un JSON array válido con este formato:
 [
     {{
-        "categoria": "Tiros de Esquina",
-Devuelve ÚNICAMENTE un JSON array válido.
+        "categoria": "UEFA Champions League",
+        "partido": "Nombre Real Local vs Nombre Real Visitante",
+        "horario": "19/08 • 13:00",
+        "pick": "Nombre Equipo Gana Directo",
+        "cuota": "1.85",
+        "confianza": "90%",
+        "razonamiento": "Explicación táctica y estadística del pick...",
+        "es_parlay": false,
+        "tiene_valor": true,
+        "odds_mercado": "1.80"
+    }}
+]
 """
     try:
         resp_final = ejecutar_groq_con_fallback(client, [
@@ -1091,7 +1101,9 @@ Devuelve ÚNICAMENTE un JSON array válido.
         picks_validados = []
         for p in raw_picks:
             p_partido = p.get('partido', '').strip()
-            if not p_partido: continue
+            p_pick = p.get('pick')
+            if not p_partido or not p_pick or str(p_pick).strip().lower() in ('none', '', 'null'):
+                continue
             
             # 1. Verificar existencia contra partidos reales escaneados
             match_encontrado = None
@@ -1134,7 +1146,11 @@ Devuelve ÚNICAMENTE un JSON array válido.
                 print(f"   🛑 DESCARTADO (Partido o pierna de parlay no existe en catálogo): {p_partido}")
                 continue
 
-            # 2. Corregir y forzar Horario Real y verificar que sea futuro en CDMX
+            # 2. Asignar categoría válida
+            if not p.get('categoria') or str(p.get('categoria')).strip().lower() in ('none', '', 'null'):
+                p['categoria'] = match_encontrado.get('categoria', 'Liga MX / Fútbol')
+
+            # 3. Corregir y forzar Horario Real y verificar que sea futuro en CDMX
             if match_encontrado and match_encontrado.get('horario'):
                 p['horario'] = match_encontrado.get('horario')
             
@@ -1144,25 +1160,8 @@ Devuelve ÚNICAMENTE un JSON array válido.
                 continue
             p['horario'] = horario_limpio
             
-            # 3. Limpieza y Normalización Matemática de Cuota
-            raw_c = str(p.get('cuota', '1.85')).strip()
-            match_odd = re.search(r'([+-]?\d+(?:\.\d+)?)', raw_c)
-            if match_odd:
-                val_odd_str = match_odd.group(1)
-                try:
-                    val_odd = float(val_odd_str)
-                    if val_odd > 50:
-                        p['cuota'] = f"{round((val_odd / 100) + 1, 2):.2f}"
-                    elif val_odd < -50:
-                        p['cuota'] = f"{round((100 / abs(val_odd)) + 1, 2):.2f}"
-                    elif val_odd >= 1.01:
-                        p['cuota'] = f"{val_odd:.2f}"
-                    else:
-                        p['cuota'] = "1.85"
-                except:
-                    p['cuota'] = "1.85"
-            else:
-                p['cuota'] = "1.85"
+            # 4. Limpieza y Normalización Matemática de Cuota
+            p['cuota'] = normalizar_cuota_decimal(p.get('cuota', '1.85'))
             
             if not p.get('razonamiento') or len(p.get('razonamiento', '')) < 10:
                 p['razonamiento'] = f"Consenso IA: Ventaja matemática +EV detectada con alta probabilidad según métricas de Playdoit."
