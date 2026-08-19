@@ -2,54 +2,19 @@ name: Rey Taco Picks Bot (Cloud AI)
 
 on:
   schedule:
-    # Horario México (UTC-6): 03:00 AM = 09:00 UTC, 10:00 AM = 16:00 UTC, 4:00 PM = 22:00 UTC, 11:00 PM = 05:00 UTC
-    - cron: '0 9 * * *'    # 03:00 AM México - Picks Madrugadores (KBO Corea y Mañana Europea)
-    - cron: '0 16 * * *'   # 10:00 AM México - Picks de la Mañana (Champions League y MLB Diurno)
-    - cron: '0 22 * * *'   # 04:00 PM México - Picks de la Tarde (Liga MX, MLB Nocturno, NFL)
-    - cron: '0 5 * * *'    # 11:00 PM México - Verificar resultados automáticamente
+    # Horario México (UTC-6):
+    # - 10:00 AM CDMX (16:00 UTC): Picks Matutinos (Champions League, MLB Diurno, Fútbol Europeo)
+    # - 04:00 PM CDMX (22:00 UTC): Picks Vespertinos (Liga MX, MLB Nocturno, NFL)
+    # - 11:00 PM CDMX (05:00 UTC): Cierre Diario (Verificación de Resultados) + Lanzamiento de KBO (Corea)
+    - cron: '0 16 * * *'   # 10:00 AM México
+    - cron: '0 22 * * *'   # 4:00 PM México
+    - cron: '0 5 * * *'    # 11:00 PM México
   workflow_dispatch:        # Permite ejecutarlo manualmente desde GitHub 24/7
 
 jobs:
-  scraper:
-    if: github.event.schedule != '0 5 * * *'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: 'stable'
-
-      - name: Install dependencies
-        run: |
-          pip install -r backend/requirements.txt
-          
-      - name: Run Scraper
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-          TELEGRAM_VIP_CHANNEL_ID: ${{ secrets.TELEGRAM_VIP_CHANNEL_ID }}
-          TELEGRAM_FREE_CHANNEL_ID: ${{ secrets.TELEGRAM_FREE_CHANNEL_ID }}
-        run: |
-          cd backend
-          python scraper.py
-
   verificar:
-    if: github.event.schedule == '0 5 * * *'
+    # Si es la ejecución de las 11:00 PM, auditar y calificar los partidos del día
+    if: github.event.schedule == '0 5 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -78,3 +43,43 @@ jobs:
         run: |
           cd backend
           python verificar_resultados.py
+
+  scraper:
+    # Se ejecuta a las 10:00 AM, 4:00 PM y 11:00 PM (para KBO y madrugada)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # A las 11:00 PM, esperar a que termine la verificación antes de publicar los nuevos picks
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: 'stable'
+
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          
+      - name: Run Scraper (Multi-Sport & KBO)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAM_VIP_CHANNEL_ID: ${{ secrets.TELEGRAM_VIP_CHANNEL_ID }}
+          TELEGRAM_FREE_CHANNEL_ID: ${{ secrets.TELEGRAM_FREE_CHANNEL_ID }}
+        run: |
+          cd backend
+          python scraper.py
