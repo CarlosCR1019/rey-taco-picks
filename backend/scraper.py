@@ -745,18 +745,18 @@ def fase2_comparacion_mercado(partidos_data):
 def ejecutar_groq_con_fallback(client, messages, temperature=0.2):
     """Ejecuta la llamada a Groq rotando inteligentemente con reintentos y pausa backoff."""
     modelos = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "mixtral-8x7b-32768",
-        "gemma2-9b-it"
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "groq/compound-mini",
+        "qwen/qwen3.6-27b"
     ]
     import re
     # Truncar mensajes excesivamente largos para evitar error 413
     mensajes_limpios = []
     for m in messages:
         c = m.get("content", "")
-        if len(c) > 6000:
-            c = c[:6000] + "\n[...datos sintetizados...]"
+        if len(c) > 4000:
+            c = c[:4000] + "\n[...datos sintetizados...]"
         mensajes_limpios.append({"role": m["role"], "content": c})
 
     for intento in range(2):
