@@ -307,16 +307,13 @@ def click_category(driver, category):
         var shadow = getShadow();
         if(!shadow) return false;
         var allNodes = Array.from(shadow.querySelectorAll('*'));
-        var catLower = '{catLower}';
-        
         var target = allNodes.find(n => {{
-            if (n.children.length > 0) return false;
-            var t = (n.textContent || '').trim().toLowerCase();
-            if (catLower.includes('champions') && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
-            if (catLower.includes('europa') && (t.includes('europa league'))) return true;
-            if (catLower.includes('libertadores') && (t.includes('libertadores'))) return true;
-            if (catLower.includes('la liga') && (t === 'la liga' || t === 'laliga')) return true;
-            if (catLower.includes('liga mx') && (t === 'liga mx')) return true;
+            var t = (n.innerText || n.textContent || '').trim().toLowerCase();
+            if ((catLower.includes('champions') || catLower.includes('uefa')) && (t.includes('champions') || t.includes('uefa') || t.includes('campeones'))) return true;
+            if (catLower.includes('europa') && (t.includes('europa league') || t.includes('europa'))) return true;
+            if (catLower.includes('libertadores') && t.includes('libertadores')) return true;
+            if (catLower.includes('la liga') && (t === 'la liga' || t === 'laliga' || t.includes('la liga'))) return true;
+            if (catLower.includes('liga mx') && (t === 'liga mx' || t.includes('liga mx'))) return true;
             if (catLower.includes('mlb') && (t.includes('mlb') || t.includes('béisbol') || t.includes('beisbol'))) return true;
             if (catLower.includes('nfl') && (t.includes('nfl') || t.includes('fútbol americano'))) return true;
             return false;
