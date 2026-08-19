@@ -830,16 +830,35 @@ def fase3_filtro_inteligente(partidos_data):
             for m in re.finditer(r'"([^"]+vs[^"]+)"', response, re.IGNORECASE):
                 raw_objetivos.append(m.group(1))
         
-        # Validar estrictamente contra partidos reales
-        objetivos = [obj for obj in raw_objetivos if any(p['partido'].lower() == obj.lower() or obj.lower() in p['partido'].lower() for p in partidos_data)]
+        # Validar estrictamente contra partidos reales y eliminar duplicados
+        objetivos_unicos = []
+        for obj in raw_objetivos:
+            match_p = next((p['partido'] for p in partidos_data if p['partido'].lower() == obj.lower() or obj.lower() in p['partido'].lower() or p['partido'].lower() in obj.lower()), None)
+            if match_p and match_p not in objetivos_unicos:
+                objetivos_unicos.append(match_p)
         
-        if len(objetivos) < 4:
-            raise ValueError(f"Solo {len(objetivos)} objetivos válidos desde IA")
+        # Asegurar balance multideporte obligatorio (Champions + KBO + MLB + Fútbol)
+        champs = [p['partido'] for p in partidos_data if ('champions' in p.get('categoria', '').lower() or 'uefa' in p.get('categoria', '').lower())]
+        kbo = [p['partido'] for p in partidos_data if ('kbo' in p.get('categoria', '').lower() or 'corea' in p.get('categoria', '').lower())]
+        mlb = [p['partido'] for p in partidos_data if ('mlb' in p.get('categoria', '').lower() or 'béisbol' in p.get('categoria', '').lower()) and p['partido'] not in kbo]
+        otros = [p['partido'] for p in partidos_data if p['partido'] not in champs and p['partido'] not in mlb and p['partido'] not in kbo]
+        
+        objetivos_finales = []
+        if champs: objetivos_finales.extend(champs[:2])
+        if kbo: objetivos_finales.extend(kbo[:2])
+        for obj in objetivos_unicos:
+            if obj not in objetivos_finales and len(objetivos_finales) < 8:
+                objetivos_finales.append(obj)
+                
+        if len(objetivos_finales) < 8:
+            for p in (mlb + otros + champs + kbo):
+                if p not in objetivos_finales and len(objetivos_finales) < 8:
+                    objetivos_finales.append(p)
             
-        print(f"   ✅ Groq seleccionó {len(objetivos)} objetivos para inmersión multideporte.")
-        for i, obj in enumerate(objetivos, 1):
+        print(f"   ✅ {len(objetivos_finales)} objetivos multideporte únicos listos para inmersión:")
+        for i, obj in enumerate(objetivos_finales, 1):
             print(f"      {i}. {obj}")
-        return objetivos[:8]
+        return objetivos_finales
     except Exception as e:
         print(f"   ⚠️ Nota en filtro IA: {e}. Aplicando balanceador multideporte...")
         # Selección balanceada: Champions League + KBO + MLB + Liga MX / Fútbol
@@ -848,7 +867,7 @@ def fase3_filtro_inteligente(partidos_data):
         mlb = [p['partido'] for p in partidos_data if ('mlb' in p.get('categoria', '').lower() or 'béisbol' in p.get('categoria', '').lower()) and p['partido'] not in kbo]
         otros = [p['partido'] for p in partidos_data if p['partido'] not in champs and p['partido'] not in mlb and p['partido'] not in kbo]
         
-        balanceados = champs[:3] + kbo[:2] + mlb[:3] + otros[:2]
+        balanceados = champs[:2] + kbo[:2] + mlb[:2] + otros[:2]
         if len(balanceados) < 8:
             balanceados += [p['partido'] for p in partidos_data if p['partido'] not in balanceados]
         return balanceados[:8]
