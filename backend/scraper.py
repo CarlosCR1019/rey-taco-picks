@@ -721,21 +721,37 @@ def fase3_filtro_inteligente(partidos_data):
     
     try:
         response = ejecutar_groq_con_fallback(client, [{"role": "user", "content": prompt}], temperature=0.1)
-        inicio = response.find('[')
-        fin = response.rfind(']') + 1
-        raw_objetivos = json.loads(response[inicio:fin])
-        # Validar estrictamente contra partidos reales
-        objetivos = [obj for obj in raw_objetivos if any(p['partido'].lower() == obj.lower() for p in partidos_data)]
-        if len(objetivos) < 4:
-            objetivos = [p['partido'] for p in partidos_data[:8]]
+        raw_objetivos = []
+        try:
+            inicio = response.find('[')
+            fin = response.rfind(']') + 1
+            if inicio != -1 and fin > inicio:
+                raw_objetivos = json.loads(response[inicio:fin])
+        except Exception:
+            for m in re.finditer(r'"([^"]+vs[^"]+)"', response, re.IGNORECASE):
+                raw_objetivos.append(m.group(1))
         
+        # Validar estrictamente contra partidos reales
+        objetivos = [obj for obj in raw_objetivos if any(p['partido'].lower() == obj.lower() or obj.lower() in p['partido'].lower() for p in partidos_data)]
+        
+        if len(objetivos) < 4:
+            raise ValueError(f"Solo {len(objetivos)} objetivos válidos desde IA")
+            
         print(f"   ✅ Groq seleccionó {len(objetivos)} objetivos para inmersión multideporte.")
         for i, obj in enumerate(objetivos, 1):
             print(f"      {i}. {obj}")
         return objetivos[:8]
     except Exception as e:
-        print(f"   ⚠️ Error en filtro: {e}. Usando los primeros 8.")
-        return [p['partido'] for p in partidos_data[:8]]
+        print(f"   ⚠️ Nota en filtro IA: {e}. Aplicando balanceador multideporte...")
+        # Selección balanceada: Champions League + MLB + Liga MX / Fútbol
+        champs = [p['partido'] for p in partidos_data if 'champions' in p.get('categoria', '').lower() or 'uefa' in p.get('categoria', '').lower()]
+        mlb = [p['partido'] for p in partidos_data if 'mlb' in p.get('categoria', '').lower() or 'béisbol' in p.get('categoria', '').lower()]
+        otros = [p['partido'] for p in partidos_data if p['partido'] not in champs and p['partido'] not in mlb]
+        
+        balanceados = champs[:4] + mlb[:3] + otros[:3]
+        if len(balanceados) < 8:
+            balanceados += [p['partido'] for p in partidos_data if p['partido'] not in balanceados]
+        return balanceados[:8]
 
 # ============================================================
 #  FASE 4: INMERSIÓN QUIRÚRGICA (Insights, Córners, Crear Apuesta)
