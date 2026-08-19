@@ -1,10 +1,38 @@
 [
   {
-    "pick_id": 1787121684,
+    "pick_id": 1787123204,
+    "partido": "Columbus Crew vs CF Montreal",
+    "timestamp_programado": 1787127769.3917298,
+    "fecha_legible": "2026-08-19 02:22:49",
+    "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [2/7]\n\n🏟️ Evento: Columbus Crew vs CF Montreal\n🕒 Horario: 19/08 • 17:30\n🎯 Selección: Columbus Crew Gana Directo\n📊 Cuota: 1.69 (Mercado: 1.64) 💎 VALOR +EV\n🔥 Confianza: 89%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja táctica y solvencia proyectada respaldada por cuotas de mercado.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
+    "reply_markup": {
+      "inline_keyboard": [
+        [
+          {
+            "text": "👑 Pase VIP ($299 MXN)",
+            "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"
+          },
+          {
+            "text": "📲 Apostar en Playdoit",
+            "url": "https://www.playdoit.mx/es/"
+          }
+        ],
+        [
+          {
+            "text": "🌐 Ver Todos los Picks en la Web",
+            "url": "https://reytacopicks.com/"
+          }
+        ]
+      ]
+    },
+    "enviado": false
+  },
+  {
+    "pick_id": 1787123205,
     "partido": "DET Tigers vs PIT Pirates",
-    "timestamp_programado": 1787126248.874631,
-    "fecha_legible": "2026-08-19 01:57:28",
-    "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [2/7]\n\n🏟️ Evento: DET Tigers vs PIT Pirates\n🕒 Horario: 19/08 • 10:35\n🎯 Selección: Más de 8.5 Carreras Totales\n📊 Cuota: 4.40 (Mercado: 4.35) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
+    "timestamp_programado": 1787132269.3917298,
+    "fecha_legible": "2026-08-19 03:37:49",
+    "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [3/7]\n\n🏟️ Evento: DET Tigers vs PIT Pirates\n🕒 Horario: 19/08 • 10:35\n🎯 Selección: Más de 8.5 Carreras Totales\n📊 Cuota: 4.40 (Mercado: 4.35) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
     "reply_markup": {
       "inline_keyboard": [
         [
@@ -28,11 +56,11 @@
     "enviado": false
   },
   {
-    "pick_id": 1787121685,
+    "pick_id": 1787123206,
     "partido": "SD Padres vs NY Mets",
-    "timestamp_programado": 1787130748.874631,
-    "fecha_legible": "2026-08-19 03:12:28",
-    "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [3/7]\n\n🏟️ Evento: SD Padres vs NY Mets\n🕒 Horario: 19/08 • 11:10\n🎯 Selección: Más de 8.5 Carreras Totales\n📊 Cuota: 1.87 (Mercado: 1.82) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
+    "timestamp_programado": 1787136769.3917298,
+    "fecha_legible": "2026-08-19 04:52:49",
+    "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [4/7]\n\n🏟️ Evento: SD Padres vs NY Mets\n🕒 Horario: 19/08 • 11:10\n🎯 Selección: Más de 8.5 Carreras Totales\n📊 Cuota: 1.87 (Mercado: 1.82) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
     "reply_markup": {
       "inline_keyboard": [
         [
@@ -56,38 +84,10 @@
     "enviado": false
   },
   {
-    "pick_id": 1787121686,
-    "partido": "ATL Braves vs MIN Twins",
-    "timestamp_programado": 1787135248.874631,
-    "fecha_legible": "2026-08-19 04:27:28",
-    "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [4/7]\n\n🏟️ Evento: ATL Braves vs MIN Twins\n🕒 Horario: 19/08 • 11:40\n🎯 Selección: Más de 8.5 Carreras Totales\n📊 Cuota: 1.83 (Mercado: 1.78) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
-    "reply_markup": {
-      "inline_keyboard": [
-        [
-          {
-            "text": "👑 Pase VIP ($299 MXN)",
-            "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"
-          },
-          {
-            "text": "📲 Apostar en Playdoit",
-            "url": "https://www.playdoit.mx/es/"
-          }
-        ],
-        [
-          {
-            "text": "🌐 Ver Todos los Picks en la Web",
-            "url": "https://reytacopicks.com/"
-          }
-        ]
-      ]
-    },
-    "enviado": false
-  },
-  {
-    "pick_id": 1787121687,
+    "pick_id": 1787123207,
     "partido": "NY Yankees vs BAL Orioles",
-    "timestamp_programado": 1787139748.874631,
-    "fecha_legible": "2026-08-19 05:42:28",
+    "timestamp_programado": 1787141269.3917298,
+    "fecha_legible": "2026-08-19 06:07:49",
     "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [5/7]\n\n🏟️ Evento: NY Yankees vs BAL Orioles\n🕒 Horario: 19/08 • 16:35\n🎯 Selección: Más de 9.5 Carreras Totales\n📊 Cuota: 3.40 (Mercado: 3.35) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
     "reply_markup": {
       "inline_keyboard": [
@@ -112,10 +112,10 @@
     "enviado": false
   },
   {
-    "pick_id": 1787121688,
+    "pick_id": 1787123208,
     "partido": "LA Dodgers vs COL Rockies",
-    "timestamp_programado": 1787144248.874631,
-    "fecha_legible": "2026-08-19 06:57:28",
+    "timestamp_programado": 1787145769.3917298,
+    "fecha_legible": "2026-08-19 07:22:49",
     "mensaje": "👑 REY TACO PICKS 👑\n⚾ ANÁLISIS MLB / BÉISBOL [6/7]\n\n🏟️ Evento: LA Dodgers vs COL Rockies\n🕒 Horario: 19/08 • 18:40\n🎯 Selección: Más de 11.5 Carreras Totales\n📊 Cuota: 1.95 (Mercado: 1.90) 💎 VALOR +EV\n🔥 Confianza: 90%\n\n🧠 Análisis Alpha (IA):\nConsenso Quant: Ventaja estadística en ritmo ofensivo y promedio histórico proyectado en Playdoit.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
     "reply_markup": {
       "inline_keyboard": [
@@ -140,11 +140,11 @@
     "enviado": false
   },
   {
-    "pick_id": 1787121689,
-    "partido": "Atlético de Madrid vs Málaga + SD Padres vs NY Mets",
-    "timestamp_programado": 1787148748.874631,
-    "fecha_legible": "2026-08-19 08:12:28",
-    "mensaje": "👑 REY TACO PICKS 👑\n🔗 COMBINADA / PARLAY DESTACADO [7/7]\n\n🏟️ Evento: Atlético de Madrid vs Málaga + SD Padres vs NY Mets\n🕒 Horario: 19/08 • 13:00 / 19/08 • 11:10\n🎯 Selección: Atlético de Madrid (Atlético de Madrid Gana Directo) & SD Padres (SD Padres Gana Directo)\n📊 Cuota: 2.35 (Mercado: 2.25) 💎 VALOR +EV\n🔥 Confianza: 93%\n\n🧠 Análisis Alpha (IA):\nCombinada matemática de alta correlación positiva y riesgo controlado.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
+    "pick_id": 1787123209,
+    "partido": "Columbus Crew vs CF Montreal + SD Padres vs NY Mets",
+    "timestamp_programado": 1787150269.3917298,
+    "fecha_legible": "2026-08-19 08:37:49",
+    "mensaje": "👑 REY TACO PICKS 👑\n🔗 COMBINADA / PARLAY DESTACADO [7/7]\n\n🏟️ Evento: Columbus Crew vs CF Montreal + SD Padres vs NY Mets\n🕒 Horario: 19/08 • 17:30 / 19/08 • 11:10\n🎯 Selección: Columbus Crew (Columbus Crew Gana Directo) & SD Padres (SD Padres Gana Directo)\n📊 Cuota: 2.99 (Mercado: 2.89) 💎 VALOR +EV\n🔥 Confianza: 93%\n\n🧠 Análisis Alpha (IA):\nCombinada matemática de alta correlación positiva y riesgo controlado.\n\n🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com",
     "reply_markup": {
       "inline_keyboard": [
         [

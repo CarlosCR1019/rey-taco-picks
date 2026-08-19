@@ -211,6 +211,17 @@ def click_category(driver, category):
         var allNodes = Array.from(shadow.querySelectorAll('*'));
         var catLower = '{category.lower()}';
         
+        // Si es KBO o liga asiática, abrir primero Béisbol si está cerrado
+        if (catLower.includes('kbo') || catLower.includes('corea') || catLower.includes('npb')) {{
+            var beis = allNodes.find(n => n.children.length === 0 && (n.textContent||'').trim().toLowerCase() === 'béisbol');
+            if (beis) {{
+                var elB = beis;
+                while (elB && elB !== shadow && !elB.className.includes('SportMenuItem') && elB.tagName !== 'BUTTON') elB = elB.parentElement;
+                (elB || beis).click();
+            }}
+            allNodes = Array.from(shadow.querySelectorAll('*'));
+        }}
+        
         var target = allNodes.find(n => {{
             if (n.children.length > 0) return false;
             var t = (n.textContent || '').trim().toLowerCase();
@@ -228,7 +239,7 @@ def click_category(driver, category):
         
         if (target) {{
             var el = target;
-            while (el && el !== shadow && el.tagName !== 'BUTTON' && el.tagName !== 'A' && !(el.getAttribute('class')||'').includes('Box') && !(el.getAttribute('class')||'').includes('Item')) {{
+            while (el && el !== shadow && el.tagName !== 'BUTTON' && el.tagName !== 'A' && !(el.getAttribute('class')||'').includes('Box') && !(el.getAttribute('class')||'').includes('Item') && !(el.getAttribute('class')||'').includes('Category')) {{
                 el = el.parentElement;
             }}
             if (el) {{
