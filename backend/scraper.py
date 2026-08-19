@@ -344,6 +344,9 @@ def extract_events_from_page(driver):
                 local = local.split('\\n')[0].trim();
                 visitante = visitante.split('\\n')[0].trim();
 
+                if (/^\\d+$/.test(local) || /^\\d+$/.test(visitante) || local.length < 3 || visitante.length < 3) return;
+                if (local.toLowerCase() === visitante.toLowerCase()) return;
+
                 result.push({
                     local: local,
                     visitante: visitante,
@@ -1142,10 +1145,25 @@ Devuelve ÚNICAMENTE un JSON array válido.
                 raw_c = match_totals.group(2)
                 c_val = float(raw_c) if raw_c else 1.75
                 if c_val > 50: c_val = (c_val / 100) + 1
-                elif c_val < -50: c_val = (100 / abs(c_val)) + 1
-                
-                unidad = "Carreras Totales" if categoria == "MLB" else ("Tiros de Esquina" if float(linea) >= 7.5 else "Goles Totales")
-                cat_nombre = "MLB" if categoria == "MLB" else ("Tiros de Esquina" if "Esquina" in unidad else "Goles / Totales")
+                f_linea = float(linea)
+                if categoria == "MLB" or "baseball" in categoria.lower():
+                    if not (6.5 <= f_linea <= 13.5): continue
+                    unidad = "Carreras Totales"
+                    cat_nombre = "MLB"
+                elif "NFL" in categoria or "football" in categoria.lower():
+                    if not (36.5 <= f_linea <= 58.5): continue
+                    unidad = "Puntos Totales"
+                    cat_nombre = "NFL"
+                else:
+                    # Fútbol
+                    if 7.5 <= f_linea <= 13.5:
+                        unidad = "Tiros de Esquina"
+                        cat_nombre = "Tiros de Esquina"
+                    elif 1.5 <= f_linea <= 4.5:
+                        unidad = "Goles Totales"
+                        cat_nombre = "Goles / Totales"
+                    else:
+                        continue
                 
                 p_item = {
                     "categoria": cat_nombre,
@@ -1386,20 +1404,21 @@ def fase7_guardar_y_notificar(picks):
         if 'ganancia_simulada' not in pick:
             pick['ganancia_simulada'] = 0
     
+    ALLOWED_COLUMNS = {
+        'id', 'categoria', 'partido', 'pick', 'cuota', 'confianza', 
+        'razonamiento', 'es_parlay', 'tiene_valor', 'estado', 
+        'fecha_generacion', 'odds_mercado', 'ganancia_simulada'
+    }
+    clean_picks = [{k: v for k, v in p.items() if k in ALLOWED_COLUMNS} for p in picks]
+    
     if supabase:
         try:
-            print(f"   💾 Subiendo {len(picks)} picks frescos a Supabase...")
-            supabase.table("picks").insert(picks).execute()
+            print(f"   💾 Subiendo {len(clean_picks)} picks frescos a Supabase...")
+            supabase.table("picks").insert(clean_picks).execute()
             print("   ✅ Picks subidos exitosamente.")
         except Exception as e:
-            try:
-                # Fallback adaptativo: quitar campos opcionales no migrados
-                clean_picks = [{k: v for k, v in p.items() if k != 'horario'} for p in picks]
-                supabase.table("picks").insert(clean_picks).execute()
-                print("   ✅ Picks subidos exitosamente (modo adaptativo).")
-            except Exception as err:
-                print(f"   ❌ Error Supabase: {err}")
-            _guardar_local(picks)
+            print(f"   ⚠️ Error en Supabase insert: {e}")
+        _guardar_local(picks)
     else:
         _guardar_local(picks)
     
