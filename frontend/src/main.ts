@@ -775,10 +775,10 @@ function filterAndRenderPicks() {
       const partido = (p.partido || '').toLowerCase();
       const pickStr = (p.pick || '').toLowerCase();
       return (cat.includes('champions') || cat.includes('uefa') || pickStr.includes('champions') || 
-              partido.includes('zagreb') || partido.includes('glimt') || partido.includes('lille') || 
-              partido.includes('galatasaray') || partido.includes('slavia') || partido.includes('red star') || 
-              partido.includes('salzburg') || partido.includes('sparta') || partido.includes('malmö') || 
-              partido.includes('dynamo') || partido.includes('midtjylland') || partido.includes('slovan')) && !p.es_parlay;
+              partido.includes('celtic') || partido.includes('lask') || partido.includes('hapoel') || 
+              partido.includes('sabah') || partido.includes('nijmegen') || partido.includes('slovan') || 
+              partido.includes('celje') || partido.includes('zagreb') || partido.includes('glimt') || 
+              partido.includes('lille') || partido.includes('slavia') || partido.includes('galatasaray')) && !p.es_parlay;
     });
   } else if (currentFilter === 'ligamx') {
     filtered = allPicksData.filter(p => {
