@@ -301,21 +301,54 @@ def click_category(driver, category):
         except Exception:
             pass
 
-    # Navegación general de ligas y torneos
+    # 1. Buscar en Top Leagues prioritarias
+    script_top = get_shadow_script() + f"""
+    try {{
+        var shadow = getShadow();
+        if (!shadow) return false;
+        var topLeagues = Array.from(shadow.querySelectorAll('[class*="TopLeagueName"], [class*="TopLeague"]'));
+        var match = topLeagues.find(n => {{
+            var t = (n.textContent || '').trim().toLowerCase();
+            if (catLower.includes('champions') && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
+            if (catLower.includes('europa') && t.includes('europa league')) return true;
+            if (catLower.includes('libertadores') && t.includes('libertadores')) return true;
+            if (catLower.includes('la liga') && (t === 'la liga' || t === 'laliga')) return true;
+            if (catLower.includes('liga mx') && (t === 'liga mx')) return true;
+            if (catLower.includes('mlb') && (t === 'mlb' || t.includes('mlb'))) return true;
+            if (catLower.includes('mls') && (t === 'mls' || t.includes('mls'))) return true;
+            if (catLower.includes('nfl') && (t === 'nfl' || t.includes('nfl'))) return true;
+            return t === catLower || t.includes(catLower);
+        }});
+        if (match) {{
+            var el = match;
+            while (el && el !== shadow && !el.className.includes('TopLeagueBox') && el.tagName !== 'BUTTON' && el.tagName !== 'A') {{
+                el = el.parentElement;
+            }}
+            (el || match).click();
+            return true;
+        }}
+        return false;
+    }} catch(e) {{ return false; }}
+    """
+    if driver.execute_script(script_top):
+        return True
+
+    # 2. Navegación general de ligas y menú deportivo
     script = get_shadow_script() + f"""
     try {{
         var shadow = getShadow();
         if(!shadow) return false;
-        var allNodes = Array.from(shadow.querySelectorAll('*'));
+        var allNodes = Array.from(shadow.querySelectorAll('[class*="SportMenuItemName"], [class*="CategoryName"], [class*="ChampionshipName"], span, div, button'));
         var target = allNodes.find(n => {{
             if (n.children.length > 0) return false;
             var t = (n.textContent || '').trim().toLowerCase();
-            if ((catLower.includes('champions') || catLower.includes('uefa')) && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
+            if (catLower.includes('champions') && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
             if (catLower.includes('europa') && (t.includes('europa league'))) return true;
             if (catLower.includes('libertadores') && t.includes('libertadores')) return true;
             if (catLower.includes('la liga') && (t === 'la liga' || t === 'laliga')) return true;
             if (catLower.includes('liga mx') && (t === 'liga mx')) return true;
             if (catLower.includes('mlb') && (t.includes('mlb') || t.includes('béisbol') || t.includes('beisbol'))) return true;
+            if (catLower.includes('mls') && (t === 'mls' || t.includes('mls'))) return true;
             if (catLower.includes('nfl') && (t.includes('nfl') || t.includes('fútbol americano'))) return true;
             return false;
         }});
@@ -325,13 +358,7 @@ def click_category(driver, category):
             while (el && el !== shadow && el.tagName !== 'BUTTON' && el.tagName !== 'A' && !(el.getAttribute('class')||'').includes('Box') && !(el.getAttribute('class')||'').includes('Item') && !(el.getAttribute('class')||'').includes('Category')) {{
                 el = el.parentElement;
             }}
-            if (el) {{
-                el.click();
-                if (el.parentElement) el.parentElement.click();
-                return true;
-            }}
-            target.click();
-            if (target.parentElement) target.parentElement.click();
+            (el || target).click();
             return true;
         }}
         return false;
