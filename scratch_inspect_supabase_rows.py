@@ -11,7 +11,8 @@ url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
 supabase = create_client(url, key)
-resp = supabase.table("picks").select("*").limit(1).execute()
-print("Columnas exactas de 'picks' en Supabase:")
-if resp.data:
-    print(list(resp.data[0].keys()))
+resp = supabase.table("picks").select("*").order("id", desc=True).limit(15).execute()
+
+print(f"Últimos {len(resp.data)} registros en Supabase table 'picks':")
+for p in resp.data:
+    print(f"ID {p.get('id')}: [{p.get('categoria')}] {p.get('partido')} | {p.get('pick')} | Estado: {p.get('estado')}")
