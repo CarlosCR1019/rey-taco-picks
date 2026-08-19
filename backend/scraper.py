@@ -214,7 +214,8 @@ def click_category(driver, category):
         var target = allNodes.find(n => {{
             if (n.children.length > 0) return false;
             var t = (n.textContent || '').trim().toLowerCase();
-            if (t === catLower) return true;
+            if (catLower.includes('kbo') && (t.includes('kbo') || t.includes('corea del sur') || t.includes('corea') || t.includes('korea'))) return true;
+            if (catLower.includes('npb') && (t.includes('npb') || t.includes('japón') || t.includes('japon'))) return true;
             if (catLower.includes('champions') && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
             if (catLower.includes('europa') && (t.includes('europa league'))) return true;
             if (catLower.includes('libertadores') && (t.includes('libertadores'))) return true;
@@ -535,7 +536,7 @@ def fase1_escaneo_superficie(driver):
         
         # 2. Exploración de categorías específicas adicionales
         categorias = [
-            'UEFA Champions League', 'Liga MX', 'MLB', 'La Liga', 
+            'UEFA Champions League', 'Liga MX', 'MLB', 'KBO', 'La Liga', 
             'UEFA Europa League', 'Copa Libertadores', 'Primeira Liga', 
             'Liga Profesional', 'Primera A', 'MLS', 'NFL'
         ]
@@ -712,12 +713,12 @@ def fase3_filtro_inteligente(partidos_data):
     Catálogo de {len(catalogo)} eventos deportivos de HOY/MAÑANA.
     REGLA CRÍTICA PRE-MATCH:
     - Selecciona ÚNICAMENTE partidos que AÚN NO HAYAN COMENZADO.
-    - Asegura MÁXIMA DIVERSIDAD: Incluir Liga MX, MLB Béisbol y Fútbol Internacional.
+    - Asegura MÁXIMA DIVERSIDAD: Incluir UEFA Champions League, Liga MX, Béisbol MLB y Béisbol KBO (para madrugadores).
     
     {json.dumps(catalogo)}
     
     Devuelve SOLO un JSON array de strings con los nombres exactos de los 8 mejores partidos.
-    Ejemplo: ["Necaxa vs Club Leon", "Pachuca vs Puebla", "Los Angeles Dodgers vs Milwaukee Brewers"]
+    Ejemplo: ["Dinamo Zagreb vs Qarabag FK", "Kia Tigers vs Kiwoom Heroes", "NY Yankees vs BAL Orioles"]
     """
     
     try:
@@ -744,12 +745,13 @@ def fase3_filtro_inteligente(partidos_data):
         return objetivos[:8]
     except Exception as e:
         print(f"   ⚠️ Nota en filtro IA: {e}. Aplicando balanceador multideporte...")
-        # Selección balanceada: Champions League + MLB + Liga MX / Fútbol
+        # Selección balanceada: Champions League + KBO + MLB + Liga MX / Fútbol
         champs = [p['partido'] for p in partidos_data if 'champions' in p.get('categoria', '').lower() or 'uefa' in p.get('categoria', '').lower()]
-        mlb = [p['partido'] for p in partidos_data if 'mlb' in p.get('categoria', '').lower() or 'béisbol' in p.get('categoria', '').lower()]
-        otros = [p['partido'] for p in partidos_data if p['partido'] not in champs and p['partido'] not in mlb]
+        kbo = [p['partido'] for p in partidos_data if 'kbo' in p.get('categoria', '').lower() or 'corea' in p.get('categoria', '').lower()]
+        mlb = [p['partido'] for p in partidos_data if ('mlb' in p.get('categoria', '').lower() or 'béisbol' in p.get('categoria', '').lower()) and p['partido'] not in kbo]
+        otros = [p['partido'] for p in partidos_data if p['partido'] not in champs and p['partido'] not in mlb and p['partido'] not in kbo]
         
-        balanceados = champs[:4] + mlb[:3] + otros[:3]
+        balanceados = champs[:3] + kbo[:2] + mlb[:3] + otros[:2]
         if len(balanceados) < 8:
             balanceados += [p['partido'] for p in partidos_data if p['partido'] not in balanceados]
         return balanceados[:8]
