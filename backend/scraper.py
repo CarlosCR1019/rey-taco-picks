@@ -380,7 +380,7 @@ def es_partido_futuro_valido(horario_str):
         except Exception:
             ahora = datetime.utcnow() - timedelta(hours=6)
         
-        limite_maximo = ahora + timedelta(hours=30)  # Solo hoy y mañana
+        limite_maximo = ahora + timedelta(hours=48)  # Próximas 48 horas (Hoy y Mañana completo)
         
         # 1. Formato con fecha y hora ej: "17/08 • 19:00" o "22/08 • 19:00"
         match_fecha_hora = re.search(r'(\d{1,2})[/.-](\d{1,2})\s*(?:•|\s+)?\s*(\d{1,2}):(\d{2})', horario_str)
