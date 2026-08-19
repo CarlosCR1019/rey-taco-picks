@@ -871,12 +871,15 @@ PICKS RECIENTES:
 # ============================================================
 #  FASE 6: ANÁLISIS FINAL — DEBATE Y CONSENSO MULTI-IA
 # ============================================================
-def fase6_analisis_final(datos_profundos, memoria, market_odds):
+def fase6_analisis_final(datos_profundos, memoria, market_odds, partidos_data=None):
     print("\n" + "="*60)
     print("🧠⚡  FASE 6: DEBATE Y CONSENSO MULTI-IA (Quant vs Auditor vs Juez)")
     print("="*60)
     
-    if not GROQ_API_KEY or not datos_profundos:
+    if partidos_data is None:
+        partidos_data = datos_profundos
+        
+    if not GROQ_API_KEY or not (datos_profundos or partidos_data):
         return []
     
     client = Groq(api_key=GROQ_API_KEY)
@@ -1579,7 +1582,7 @@ def main():
         memoria = fase5_memoria_historica()
         
         # Fase 6: Análisis Final
-        picks = fase6_analisis_final(datos_profundos, memoria, market_odds)
+        picks = fase6_analisis_final(datos_profundos, memoria, market_odds, partidos)
         
         # Fase 7: Guardar y Notificar
         fase7_guardar_y_notificar(picks)
