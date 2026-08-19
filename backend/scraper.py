@@ -203,16 +203,40 @@ def click_decimal_toggle(driver):
     time.sleep(2)
 
 def click_category(driver, category):
-    """Hace clic en una categoría del menú lateral."""
+    """Hace clic en una categoría o liga del menú lateral o barra superior de Playdoit."""
     script = get_shadow_script() + f"""
     try {{
         var shadow = getShadow();
         if(!shadow) return false;
         var allNodes = Array.from(shadow.querySelectorAll('*'));
-        var target = allNodes.find(n => n.children.length === 0 && n.textContent.trim().toLowerCase() === '{category.lower()}');
-        if(target) {{
+        var catLower = '{category.lower()}';
+        
+        var target = allNodes.find(n => {{
+            if (n.children.length > 0) return false;
+            var t = (n.textContent || '').trim().toLowerCase();
+            if (t === catLower) return true;
+            if (catLower.includes('champions') && (t.includes('champions league') || t.includes('liga de campeones'))) return true;
+            if (catLower.includes('europa') && (t.includes('europa league'))) return true;
+            if (catLower.includes('libertadores') && (t.includes('libertadores'))) return true;
+            if (catLower.includes('la liga') && (t === 'la liga' || t === 'laliga')) return true;
+            if (catLower.includes('liga mx') && (t === 'liga mx')) return true;
+            if (catLower.includes('mlb') && (t.includes('mlb') || t.includes('béisbol') || t.includes('beisbol'))) return true;
+            if (catLower.includes('nfl') && (t.includes('nfl') || t.includes('fútbol americano'))) return true;
+            return false;
+        }});
+        
+        if (target) {{
+            var el = target;
+            while (el && el !== shadow && el.tagName !== 'BUTTON' && el.tagName !== 'A' && !(el.getAttribute('class')||'').includes('Box') && !(el.getAttribute('class')||'').includes('Item')) {{
+                el = el.parentElement;
+            }}
+            if (el) {{
+                el.click();
+                if (el.parentElement) el.parentElement.click();
+                return true;
+            }}
             target.click();
-            if(target.parentElement) target.parentElement.click();
+            if (target.parentElement) target.parentElement.click();
             return true;
         }}
         return false;
@@ -513,14 +537,15 @@ def fase1_escaneo_superficie(driver):
         
         # 2. Exploración de categorías específicas adicionales
         categorias = [
-            'Liga MX', 'MLB', 'La Liga', 'Copa Italia', 'Primeira Liga', 
+            'UEFA Champions League', 'Liga MX', 'MLB', 'La Liga', 
+            'UEFA Europa League', 'Copa Libertadores', 'Primeira Liga', 
             'Liga Profesional', 'Primera A', 'MLS', 'NFL'
         ]
         
         for cat in categorias:
             print(f"   Explorando: {cat}...", end=" ")
             if click_category(driver, cat):
-                time.sleep(2)
+                time.sleep(3)
                 eventos = extract_events_from_page(driver)
                 nuevos = 0
                 for e in eventos:
