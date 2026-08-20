@@ -1429,26 +1429,35 @@ def fase7_guardar_y_notificar(picks):
     
     # Agregar metadatos
     base_id = int(time.time())
+    columnas_validas = {
+        'id', 'categoria', 'partido', 'pick', 'cuota', 'confianza', 'razonamiento',
+        'marcador', 'estado', 'es_parlay', 'liga', 'mercado', 'riesgo',
+        'resultado_apuesta', 'ganancia_simulada', 'fecha_generacion', 'odds_mercado', 'tiene_valor'
+    }
+    
+    clean_picks = []
     for idx, pick in enumerate(picks):
         pick['id'] = base_id + idx
         pick['fecha_generacion'] = hoy
         pick['estado'] = 'pendiente'
+        pick['liga'] = pick.get('categoria', 'Fútbol Internacional')
         if 'ganancia_simulada' not in pick:
             pick['ganancia_simulada'] = 0
+        clean_item = {k: v for k, v in pick.items() if k in columnas_validas}
+        clean_picks.append(clean_item)
     
     if supabase:
         try:
-            print(f"   💾 Subiendo {len(picks)} picks frescos a Supabase...")
-            supabase.table("picks").insert(picks).execute()
-            print("   ✅ Picks subidos exitosamente.")
-        except Exception as e:
+            print(f"   💾 Subiendo {len(clean_picks)} picks frescos a Supabase...")
+            # Limpiar pendientes anteriores
             try:
-                # Fallback adaptativo: quitar campos opcionales no migrados
-                clean_picks = [{k: v for k, v in p.items() if k != 'horario'} for p in picks]
-                supabase.table("picks").insert(clean_picks).execute()
-                print("   ✅ Picks subidos exitosamente (modo compatible).")
-            except Exception as e2:
-                print(f"   ⚠️ Error subiendo a Supabase: {e2}")
+                supabase.table("picks").delete().eq("estado", "pendiente").execute()
+            except Exception:
+                pass
+            supabase.table("picks").insert(clean_picks).execute()
+            print("   ✅ Picks subidos exitosamente a Supabase.")
+        except Exception as e:
+            print(f"   ⚠️ Error subiendo a Supabase: {e}")
     else:
         print("   ⚠️ No hay conexión a Supabase, guardando solo en local.")
         

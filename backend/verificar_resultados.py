@@ -21,23 +21,53 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and
 #  ganado/perdido. Diseñado para correr al día siguiente.
 # ============================================================
 
-def obtener_resultados_api(sport_key='soccer'):
-    """Consulta The Odds API para resultados recientes (scores)."""
-    if not ODDS_API_KEY:
-        print("⚠️ No hay ODDS_API_KEY configurada.")
-        return []
+def obtener_resultados_api():
+    """Consulta múltiples fuentes (ESPN API pública y The Odds API) para obtener resultados de partidos finalizados."""
+    todos_juegos = []
     
-    url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/scores/?apiKey={ODDS_API_KEY}&daysFrom=1"
-    try:
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode())
-            completados = [g for g in data if g.get('completed')]
-            print(f"   ✅ {sport_key}: {len(completados)} juegos completados encontrados.")
-            return completados
-    except Exception as e:
-        print(f"   ❌ Error consultando resultados de {sport_key}: {e}")
-        return []
+    # 1. ESPN Scoreboards (100% público, gratuito y sin límite)
+    espn_leagues = [
+        ("UEFA Champions", "https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard"),
+        ("Liga MX", "https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/scoreboard"),
+        ("La Liga", "https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard"),
+        ("Premier League", "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard"),
+        ("Serie A", "https://site.api.espn.com/apis/site/v2/sports/soccer/ita.1/scoreboard"),
+        ("MLS", "https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard"),
+        ("MLB", "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard"),
+        ("KBO", "https://site.api.espn.com/apis/site/v2/sports/baseball/kbo/scoreboard"),
+        ("NFL", "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard")
+    ]
+    
+    for liga_nombre, url in espn_leagues:
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+                for ev in data.get('events', []):
+                    comp = ev.get('competitions', [{}])[0]
+                    status_type = ev.get('status', {}).get('type', {})
+                    is_completed = status_type.get('completed', False) or 'final' in status_type.get('description', '').lower()
+                    
+                    competitors = comp.get('competitors', [])
+                    if len(competitors) >= 2:
+                        home_c = next((c for c in competitors if c.get('homeAway') == 'home'), competitors[0])
+                        away_c = next((c for c in competitors if c.get('homeAway') == 'away'), competitors[1])
+                        
+                        score_h = float(home_c.get('score', 0) or 0)
+                        score_a = float(away_c.get('score', 0) or 0)
+                        
+                        todos_juegos.append({
+                            'home_team': home_c.get('team', {}).get('displayName', ''),
+                            'away_team': away_c.get('team', {}).get('displayName', ''),
+                            'completed': is_completed,
+                            'scores': [{'name': home_c.get('team', {}).get('displayName', ''), 'score': score_h},
+                                       {'name': away_c.get('team', {}).get('displayName', ''), 'score': score_a}]
+                        })
+        except Exception:
+            continue
+            
+    print(f"   ✅ ESPN API: {len([j for j in todos_juegos if j.get('completed')])} partidos completados encontrados.")
+    return todos_juegos
 
 def normalizar_nombre(nombre):
     """Normaliza nombres de equipos para comparación fuzzy."""
@@ -113,14 +143,8 @@ def verificar_picks():
     
     print(f"📋 {len(picks_pendientes)} picks pendientes encontrados.\n")
     
-    # Obtener resultados de múltiples deportes
-    todos_resultados = []
-    for sport in ['soccer_mexico_ligamx', 'soccer_spain_la_liga', 'soccer_italy_serie_a',
-                   'soccer_uefa_champs_league', 'soccer_usa_mls', 'soccer_brazil_serie_a',
-                   'americanfootball_nfl', 'baseball_mlb']:
-        resultados = obtener_resultados_api(sport)
-        todos_resultados.extend(resultados)
-    
+    # Obtener resultados de múltiples deportes (ESPN API pública)
+    todos_resultados = obtener_resultados_api()
     print(f"\n📊 Total de resultados obtenidos: {len(todos_resultados)}")
     
     # Comparar cada pick contra resultados
