@@ -889,7 +889,7 @@ function renderPicks(picks: any[]) {
               <span class="sport-tag ${sportClass}">${pick.categoria || pick.deporte || 'Mercado'}</span>
               ${pick.horario || pick.hora_partido || pick.fecha_generacion ? `<span class="time-tag">🕒 ${pick.horario || pick.hora_partido || (pick.fecha_generacion === new Date().toISOString().split('T')[0] ? 'Hoy' : pick.fecha_generacion)}</span>` : ''}
             </div>
-            ${isDraftea ? '<span class="banca-plus-tag">🛡️ BANCA+ SUPLENTE SUMA</span>' : (pick.tiene_valor ? '<span class="value-badge">VALOR DETECTADO</span>' : '')}
+            ${pick.tiene_valor ? '<span class="value-badge">VALOR DETECTADO</span>' : ''}
           </div>
           
           <div class="card-body">
@@ -898,7 +898,7 @@ function renderPicks(picks: any[]) {
             <div class="the-pick">
               <span class="pick-text">${pick.pick}</span>
               <div class="odds-container">
-                <span class="pick-odds">${oddsFormatted}</span>
+                <span class="pick-odds">${pick.cuota}</span>
                 ${pick.odds_mercado ? `<span class="market-odds">Cuota Mercado: ${pick.odds_mercado}</span>` : ''}
               </div>
             </div>
@@ -920,7 +920,7 @@ function renderPicks(picks: any[]) {
               <div class="card-actions">
                 <button class="btn-build-parlay-card" data-match="${pick.partido || pick.evento}">⚡ Parlay IA</button>
                 <a href="https://api.whatsapp.com/send?text=${shareText}" target="_blank" class="btn-share-pick">📲 Compartir</a>
-                <a href="${platformUrl}" target="_blank" class="btn-playdoit-pick" style="${platformStyle}">${platformLabel}</a>
+                <a href="${platformUrl}" target="_blank" class="btn-playdoit-pick">${platformLabel}</a>
               </div>
             ` : ''}
           </div>
