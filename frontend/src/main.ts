@@ -76,6 +76,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <button class="filter-pill" data-filter="ligamx">🇲🇽 Liga MX</button>
           <button class="filter-pill" data-filter="futbol">⚽ Fútbol Global</button>
           <button class="filter-pill" data-filter="corners">⛳ Tiros de Esquina</button>
+          <button class="filter-pill" data-filter="draftea">🔥 Draftea (BANCA+)</button>
           <button class="filter-pill" data-filter="mlb">⚾ Béisbol MLB</button>
           <button class="filter-pill" data-filter="kbo">🇰🇷 KBO (Corea)</button>
           <button class="filter-pill" data-filter="nfl">🏈 NFL</button>
@@ -819,6 +820,15 @@ function filterAndRenderPicks() {
       const cat = (p.categoria || p.deporte || '').toLowerCase();
       const pickStr = (p.pick || '').toLowerCase();
       return cat.includes('esquina') || cat.includes('córner') || pickStr.includes('córner') || pickStr.includes('esquina') || pickStr.includes('corner');
+    });
+  } else if (currentFilter === 'draftea') {
+    filtered = allPicksData.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      const pickStr = (p.pick || '').toLowerCase();
+      const razon = (p.razonamiento || '').toLowerCase();
+      return cat.includes('draftea') || cat.includes('prop') || cat.includes('remate') || cat.includes('tiro a puerta') ||
+             pickStr.includes('remate') || pickStr.includes('tiro a puerta') || pickStr.includes('tiros a puerta') ||
+             pickStr.includes('banca+') || razon.includes('draftea') || razon.includes('banca+');
     });
   } else if (currentFilter === 'mlb') {
     filtered = allPicksData.filter(p => {
