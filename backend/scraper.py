@@ -309,8 +309,8 @@ def click_category(driver, category):
         var match = all.find(n => {{
             if (n.children.length > 0) return false;
             var t = (n.textContent || '').trim().toLowerCase();
-            if ((catLower.includes('champions') || catLower.includes('uefa')) && (t === 'uefa champions league' || t.includes('champions league') || t.includes('liga de campeones'))) return true;
-            if (catLower.includes('europa') && t.includes('europa league')) return true;
+            if ((catLower.includes('champions') || catLower.includes('uefa champions')) && (t === 'uefa champions league' || t.includes('champions league') || t.includes('liga de campeones'))) return true;
+            if ((catLower.includes('europa') || catLower.includes('conference')) && (t.includes('europa league') || t.includes('conference league') || t.includes('liga europa'))) return true;
             if (catLower.includes('libertadores') && t.includes('libertadores')) return true;
             if (catLower.includes('la liga') && (t === 'la liga' || t === 'laliga')) return true;
             if (catLower.includes('liga mx') && (t === 'liga mx')) return true;
