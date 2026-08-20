@@ -1047,44 +1047,44 @@ button {
 
 .filter-bar {
   display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.75rem;
-  margin-bottom: 1.5rem;
-  scrollbar-width: none;
-}
-
-.filter-bar::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  margin-bottom: 1.75rem;
+  padding: 0.25rem 0;
 }
 
 .filter-pill {
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  border: 1px solid var(--border-color);
-  padding: 0.55rem 1.1rem;
-  border-radius: 24px;
-  font-size: 0.85rem;
+  background: rgba(17, 24, 39, 0.85);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.55rem 1.15rem;
+  border-radius: 9999px;
+  font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
+  user-select: none;
 }
 
 .filter-pill:hover {
-  background: #1e293b;
-  color: var(--text-main);
-  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(30, 41, 59, 0.9);
+  color: #ffffff;
+  border-color: #ef4444;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
 .filter-pill.active {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.05) 100%);
-  color: var(--gold-accent);
-  border-color: var(--gold-accent);
-  box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45) !important;
+  transform: translateY(-1px);
 }
 
 /* Card Action Buttons */
@@ -1891,24 +1891,7 @@ button {
   }
 }
 
-/* Platform Tabs (Playdoit vs Draftea BANCA+) */
-.platform-tabs-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
 
-.filter-pill.active {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
-  border-color: #ef4444;
-  color: #fff;
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
-}
-
-.filter-pill:hover {
-  border-color: #ef4444;
-}
 
 .pick-card {
   border-color: rgba(239, 68, 68, 0.22);
