@@ -13,30 +13,42 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
+VIP_CHANNEL_ID = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
+ADMIN_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "5912533842"))
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
 
 TICKETS_DIR = os.path.join("..", "frontend", "public", "tickets")
 os.makedirs(TICKETS_DIR, exist_ok=True)
 
-# ============================================================
-#  TELEGRAM PHOTO LISTENER
-#  Escucha mensajes enviados al bot. Cuando el admin envía
-#  una foto, la descarga, la guarda, y opcionalmente la
-#  reenvía al canal público como "Ticket Ganador".
-# ============================================================
-
 OFFSET_FILE = os.path.join(os.path.dirname(__file__), ".telegram_offset")
 
 def get_offset():
     if os.path.exists(OFFSET_FILE):
         with open(OFFSET_FILE, "r") as f:
-            return int(f.read().strip())
+            try:
+                return int(f.read().strip())
+            except:
+                return 0
     return 0
 
 def save_offset(offset):
     with open(OFFSET_FILE, "w") as f:
         f.write(str(offset))
+
+def telegram_api(method, payload):
+    """Llamada genérica segura a la API de Telegram."""
+    if not TELEGRAM_TOKEN:
+        return None
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/{method}"
+    try:
+        data = json.dumps(payload).encode('utf-8')
+        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except Exception as e:
+        print(f"Error Telegram API ({method}): {e}")
+        return None
 
 def get_updates(offset=0):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=30"
@@ -52,78 +64,149 @@ def get_updates(offset=0):
 def download_photo(file_id, save_path):
     """Descarga una foto de Telegram usando el file_id."""
     try:
-        # Obtener file_path
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getFile?file_id={file_id}"
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req) as resp:
-            data = json.loads(resp.read().decode())
-            file_path = data['result']['file_path']
-        
-        # Descargar archivo
-        download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
-        urllib.request.urlretrieve(download_url, save_path)
-        return True
+        res = telegram_api("getFile", {"file_id": file_id})
+        if res and res.get('ok'):
+            file_path = res['result']['file_path']
+            download_url = f"https://api.telegram.org/file/bot{TELEGRAM_TOKEN}/{file_path}"
+            urllib.request.urlretrieve(download_url, save_path)
+            return True
+        return False
     except Exception as e:
         print(f"Error descargando foto: {e}")
         return False
 
 def reenviar_a_canal(file_id, caption=""):
     """Reenvía la foto al canal público con caption."""
-    if not CHANNEL_ID:
-        return
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
-        data = json.dumps({
-            "chat_id": CHANNEL_ID,
+    target = VIP_CHANNEL_ID or CHANNEL_ID
+    if target:
+        telegram_api("sendPhoto", {
+            "chat_id": target,
             "photo": file_id,
             "caption": caption or "🏆 ¡Ticket Ganador! Otra victoria más para Rey Taco Picks 👑🌮"
-        }).encode('utf-8')
-        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-        urllib.request.urlopen(req)
-        print("   📢 Foto reenviada al canal público.")
-    except Exception as e:
-        print(f"   ⚠️ Error reenviando al canal: {e}")
+        })
+        print("   📢 Foto reenviada al canal.")
 
-def responder(chat_id, texto):
-    """Envía una respuesta al chat."""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        data = json.dumps({"chat_id": chat_id, "text": texto}).encode('utf-8')
-        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-        urllib.request.urlopen(req)
-    except:
-        pass
-
-ADMIN_CHAT_ID = 5912533842
+def responder(chat_id, texto, reply_markup=None):
+    payload = {"chat_id": chat_id, "text": texto}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    telegram_api("sendMessage", payload)
 
 def responder_publico(chat_id):
     """Envía mensaje comercial / bienvenida automático a cualquier usuario que no sea el admin."""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        texto = (
-            "🌮👑 ¡Hola! Bienvenido al bot oficial de *Rey Taco Picks*.\n\n"
-            "📢 Para recibir nuestros análisis y picks gratuitos del día, entra a nuestro canal:\n"
-            "👉 @ReyTacoPicksFree\n\n"
-            "👑 Para recibir la cartera completa, córners y combinadas exclusivas antes de cada partido, adquiere tu *Pase VIP ($299 MXN)*:\n"
-            "👉 Escríbenos por WhatsApp: https://wa.me/525639331102\n\n"
-            "🌐 Web Oficial: https://reytacopicks.com"
-        )
-        keyboard = {
-            "inline_keyboard": [
-                [
-                    {"text": "👑 Adquirir VIP ($299 MXN)", "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"},
-                    {"text": "📢 Canal Gratuito", "url": "https://t.me/ReyTacoPicksFree"}
-                ],
-                [
-                    {"text": "🌐 Visitar Web Oficial", "url": "https://reytacopicks.com/"}
-                ]
+    texto = (
+        "🌮👑 ¡Hola! Bienvenido al bot oficial de *Rey Taco Picks*.\n\n"
+        "📢 Para recibir nuestros análisis y picks gratuitos del día, entra a nuestro canal:\n"
+        "👉 @ReyTacoPicksFree\n\n"
+        "👑 Para recibir la cartera completa, córners y combinadas exclusivas antes de cada partido, adquiere tu *Pase VIP ($299 MXN)*:\n"
+        "👉 Escríbenos por WhatsApp: https://wa.me/525639331102\n\n"
+        "🌐 Web Oficial: https://reytacopicks.com"
+    )
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "👑 Adquirir VIP ($299 MXN)", "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"},
+                {"text": "📢 Canal Gratuito", "url": "https://t.me/ReyTacoPicksFree"}
+            ],
+            [
+                {"text": "🌐 Visitar Web Oficial", "url": "https://reytacopicks.com/"}
             ]
-        }
-        data = json.dumps({"chat_id": chat_id, "text": texto, "parse_mode": "Markdown", "reply_markup": keyboard}).encode('utf-8')
-        req = urllib.request.Request(url, data=data, headers={'Content-Type': 'application/json'})
-        urllib.request.urlopen(req, timeout=10)
+        ]
+    }
+    responder(chat_id, texto, keyboard)
+
+def verificar_usuario_vip(telegram_id=None, username=None):
+    """Verifica en Supabase si el usuario tiene suscripción VIP activa."""
+    if not supabase:
+        return False
+    try:
+        if telegram_id:
+            res = supabase.table("profiles").select("is_premium").eq("telegram_id", str(telegram_id)).execute()
+            if res.data and res.data[0].get("is_premium"):
+                return True
+        if username:
+            clean_user = username.replace("@", "").strip().lower()
+            res = supabase.table("profiles").select("is_premium").eq("telegram_username", clean_user).execute()
+            if res.data and res.data[0].get("is_premium"):
+                return True
     except Exception as e:
-        print(f"Error respondiendo a público: {e}")
+        print(f"Error verificando usuario VIP en Supabase: {e}")
+    return False
+
+def procesar_solicitud_union(join_req):
+    """Procesa una solicitud de usuario para unirse al canal VIP con aprobación obligatoria."""
+    user = join_req.get('from', {})
+    chat = join_req.get('chat', {})
+    user_id = user.get('id')
+    username = user.get('username', 'Sin username')
+    first_name = user.get('first_name', 'Usuario')
+    chat_id = chat.get('id')
+
+    print(f"\n🚪 [SOLICITUD DE UNIÓN] Usuario: {first_name} (@{username}, ID: {user_id}) en Canal {chat_id}")
+
+    # Verificar si es VIP en Supabase
+    es_vip = verificar_usuario_vip(telegram_id=user_id, username=username)
+
+    if es_vip:
+        # APROBAR AUTOMÁTICAMENTE
+        telegram_api("approveChatJoinRequest", {"chat_id": chat_id, "user_id": user_id})
+        responder(user_id, "👑 ¡Felicidades! Tu suscripción VIP fue verificada. Bienvenido al Canal VIP Oficial de Rey Taco Picks 🌮.")
+        responder(ADMIN_CHAT_ID, f"✅ [VIP AUTO-APROBADO] @{username} ({first_name}, ID: {user_id}) fue aceptado automáticamente en el Canal VIP.")
+        print(f"   ✅ Usuario {user_id} aprobado automáticamente.")
+    else:
+        # RECHAZAR O MANTENER PENDIENTE Y MANDARLE MENSAJE DE PAGO
+        telegram_api("declineChatJoinRequest", {"chat_id": chat_id, "user_id": user_id})
+        
+        # Enviar mensaje privado con datos de pago
+        msg_pago = (
+            f"👑 ¡Hola {first_name}! Para ingresar al *Canal VIP Oficial de Rey Taco Picks*, requieres una suscripción activa ($299 MXN/mes).\n\n"
+            "💳 *PAGO DIRECTO SPEI (BBVA)*:\n"
+            "• Banco: BBVA México\n"
+            "• CLABE: `012 180 01522813375 9`\n"
+            "• Titular: Rey Taco Picks\n\n"
+            "📲 Al realizar tu transferencia, envía tu comprobante a nuestro WhatsApp para activarte de inmediato:\n"
+            "👉 https://wa.me/525639331102"
+        )
+        responder(user_id, msg_pago)
+        
+        # Notificar a Carlos en privado
+        responder(ADMIN_CHAT_ID, 
+            f"⚠️ [ACCESO VIP DENEGADO]\n\n"
+            f"👤 Usuario: {first_name} (@{username})\n"
+            f"🆔 ID Telegram: `{user_id}`\n"
+            f"❌ Motivo: No tiene suscripción activa en Supabase.\n"
+            f"🤖 Se le enviaron los datos de transferencia SPEI y WhatsApp."
+        )
+        print(f"   🚫 Solicitud de {user_id} denegada por falta de pago.")
+
+def procesar_nuevo_miembro(message):
+    """Detecta si alguien entra al canal VIP sin autorización y lo expulsa."""
+    chat = message.get('chat', {})
+    chat_id = chat.get('id')
+    
+    # Solo auditar si es en el canal VIP
+    if str(chat_id) == str(VIP_CHANNEL_ID):
+        new_members = message.get('new_chat_members', [])
+        for m in new_members:
+            user_id = m.get('id')
+            username = m.get('username', 'Sin username')
+            first_name = m.get('first_name', 'Usuario')
+            
+            if user_id == ADMIN_CHAT_ID:
+                continue
+                
+            es_vip = verificar_usuario_vip(telegram_id=user_id, username=username)
+            if not es_vip:
+                print(f"🚨 [EXPULSIÓN] Usuario no autorizado en canal VIP: {first_name} (@{username})")
+                # Expulsar
+                telegram_api("banChatMember", {"chat_id": chat_id, "user_id": user_id})
+                telegram_api("unbanChatMember", {"chat_id": chat_id, "user_id": user_id})
+                
+                responder(ADMIN_CHAT_ID, 
+                    f"🚫 [USUARIO EXPULSADO DEL CANAL VIP]\n\n"
+                    f"👤 {first_name} (@{username}, ID: `{user_id}`)\n"
+                    f"Fue expulsado automáticamente porque no tiene suscripción VIP pagada."
+                )
 
 def procesar_foto(update):
     """Procesa una foto recibida del admin."""
@@ -135,11 +218,9 @@ def procesar_foto(update):
     if not photos:
         return
     
-    # Tomar la foto de mayor resolución (última en el array)
     best_photo = photos[-1]
     file_id = best_photo['file_id']
     
-    # Generar nombre único
     timestamp = int(time.time())
     filename = f"ticket_{timestamp}.jpg"
     save_path = os.path.join(TICKETS_DIR, filename)
@@ -149,7 +230,6 @@ def procesar_foto(update):
     if download_photo(file_id, save_path):
         print(f"   ✅ Guardada: {save_path}")
         
-        # Actualizar manifest.json local
         manifest_path = os.path.join(TICKETS_DIR, "manifest.json")
         manifest_list = []
         if os.path.exists(manifest_path):
@@ -164,7 +244,6 @@ def procesar_foto(update):
                 json.dump(manifest_list, f, indent=2)
             print("   📁 manifest.json actualizado.")
         
-        # Guardar referencia en Supabase
         if supabase:
             try:
                 supabase.table("tickets_ganadores").insert({
@@ -176,23 +255,17 @@ def procesar_foto(update):
             except Exception as e:
                 print(f"   ⚠️ Error en Supabase (tabla opcional): {e}")
         
-        # Reenviar al canal público
         reenviar_a_canal(file_id, caption)
-        
-        # Responder al admin
         responder(chat_id, f"✅ ¡Ticket guardado y publicado en el canal!\nArchivo: {filename}")
     else:
         responder(chat_id, "❌ Error al descargar la foto. Intenta de nuevo.")
 
 def main():
     print("="*60)
-    print("📸  REY TACO PICKS — Listener de Tickets Ganadores")
-    print("   Modo: Whitelist Estricto (Admin ID: 5912533842)")
+    print("🛡️  REY TACO PICKS — Guardian & Ticket Listener 24/7")
+    print("   Protección VIP: Rechazo automático de no-pagados activo")
+    print("   Admin ID:", ADMIN_CHAT_ID)
     print("="*60)
-    print(f"Bot Token: ...{TELEGRAM_TOKEN[-8:]}")
-    print(f"Canal: {CHANNEL_ID or 'No configurado'}")
-    print(f"Carpeta: {os.path.abspath(TICKETS_DIR)}")
-    print("\nEsperando mensajes... (Presiona Ctrl+C para detener)\n")
     
     offset = get_offset()
     
@@ -204,14 +277,28 @@ def main():
                 offset = update['update_id'] + 1
                 save_offset(offset)
                 
+                # 1. EVENTO: Solicitud de entrada a canal privado (Request Admin Approval)
+                if 'chat_join_request' in update:
+                    procesar_solicitud_union(update['chat_join_request'])
+                    continue
+
+                # 2. EVENTO: Mensajes normales o fotos
                 message = update.get('message', {})
+                if not message:
+                    continue
+
+                # Detectar si alguien entró al canal
+                if 'new_chat_members' in message:
+                    procesar_nuevo_miembro(message)
+                    continue
+
                 chat_id = message.get('chat', {}).get('id')
                 if not chat_id:
                     continue
                 
-                # FILTRO ESTRICTO: Si NO es Carlos (5912533842)
+                # Si NO es Carlos (Admin)
                 if chat_id != ADMIN_CHAT_ID:
-                    print(f"👤 Mensaje recibido de usuario público {chat_id}. Enviando auto-respuesta...")
+                    print(f"👤 Mensaje de usuario {chat_id}. Enviando respuesta comercial...")
                     responder_publico(chat_id)
                     continue
                 
@@ -225,49 +312,37 @@ def main():
                     if texto == '/start':
                         responder(chat_id, 
                             "👑 ¡Bienvenido Administrador Carlos!\n\n"
-                            "📸 Envíame cualquier foto de ticket ganador y la publicaré automáticamente en el canal VIP y en la web.\n\n"
-                            "👑 COMANDOS DE ADMINISTRADOR:\n"
-                            "• /vip correo@ejemplo.com ➔ Activa el VIP a un cliente en Supabase\n"
-                            "• /quitarvip correo@ejemplo.com ➔ Revoca el VIP\n"
-                            "• /usuarios ➔ Ver lista de clientes registrados\n"
-                            "• /tickets ➔ Ver cuántos tickets hay guardados"
+                            "📸 Envíame cualquier foto de ticket ganador y la publicaré en el canal y en la web.\n\n"
+                            "🛡️ GUARDIÁN DEL CANAL VIP:\n"
+                            "• El bot rechaza automáticamente a quienes intenten entrar sin suscripción.\n"
+                            "• /aprobar 123456789 ➔ Aprueba manualmente a un usuario por su ID\n"
+                            "• /expulsar 123456789 ➔ Expulsa a un usuario del Canal VIP\n"
+                            "• /vip correo@ejemplo.com ➔ Activa el VIP en la web\n"
+                            "• /usuarios ➔ Ver clientes registrados"
                         )
-                    elif texto.startswith('/vip ') or (texto.startswith('vip ') and '@' in texto):
+                    elif texto.startswith('/aprobar '):
+                        partes = raw_text.split()
+                        if len(partes) >= 2:
+                            target_id = int(partes[1].strip())
+                            telegram_api("approveChatJoinRequest", {"chat_id": VIP_CHANNEL_ID, "user_id": target_id})
+                            responder(chat_id, f"✅ Usuario {target_id} APROBADO manualmente en el Canal VIP.")
+                    elif texto.startswith('/expulsar '):
+                        partes = raw_text.split()
+                        if len(partes) >= 2:
+                            target_id = int(partes[1].strip())
+                            telegram_api("banChatMember", {"chat_id": VIP_CHANNEL_ID, "user_id": target_id})
+                            telegram_api("unbanChatMember", {"chat_id": VIP_CHANNEL_ID, "user_id": target_id})
+                            responder(chat_id, f"🚫 Usuario {target_id} EXPULSADO del Canal VIP.")
+                    elif texto.startswith('/vip '):
                         partes = raw_text.split()
                         if len(partes) >= 2:
                             target_email = partes[1].strip()
                             if supabase:
                                 try:
-                                    # Update profile is_premium
-                                    res = supabase.table("profiles").update({"is_premium": True}).eq("email", target_email).execute()
-                                    if res.data and len(res.data) > 0:
-                                        responder(chat_id, f"✅ ¡ACCESO VIP ACTIVADO!\n\nEl correo {target_email} ahora tiene acceso completo a todos los picks en la web.")
-                                    else:
-                                        # Si no existe en profiles, intentar crearlo
-                                        import uuid
-                                        supabase.table("profiles").insert({"id": str(uuid.uuid4()), "email": target_email, "is_premium": True}).execute()
-                                        responder(chat_id, f"✅ ¡ACCESO VIP ACTIVADO!\n\nSe creó el registro y se activó VIP para {target_email}.")
-                                    print(f"   👑 VIP activado para: {target_email}")
-                                except Exception as e:
-                                    responder(chat_id, f"⚠️ Error al actualizar Supabase: {e}")
-                            else:
-                                responder(chat_id, "❌ Error: No hay conexión a Supabase.")
-                        else:
-                            responder(chat_id, "Uso: /vip correo@ejemplo.com")
-
-                    elif texto.startswith('/quitarvip '):
-                        partes = raw_text.split()
-                        if len(partes) >= 2:
-                            target_email = partes[1].strip()
-                            if supabase:
-                                try:
-                                    supabase.table("profiles").update({"is_premium": False}).eq("email", target_email).execute()
-                                    responder(chat_id, f"🚫 Acceso VIP revocado para {target_email}.")
+                                    supabase.table("profiles").update({"is_premium": True}).eq("email", target_email).execute()
+                                    responder(chat_id, f"✅ ¡ACCESO VIP ACTIVADO en web para {target_email}!")
                                 except Exception as e:
                                     responder(chat_id, f"⚠️ Error: {e}")
-                            else:
-                                responder(chat_id, "❌ Error: Sin conexión a Supabase.")
-
                     elif texto == '/usuarios':
                         if supabase:
                             try:
@@ -281,57 +356,12 @@ def main():
                                 else:
                                     responder(chat_id, "No hay usuarios registrados aún.")
                             except Exception as e:
-                                responder(chat_id, f"Error consultando usuarios: {e}")
-                        else:
-                            responder(chat_id, "Sin conexión a Supabase.")
-
+                                responder(chat_id, f"Error: {e}")
                     elif texto == '/tickets':
                         archivos = os.listdir(TICKETS_DIR)
                         fotos = [f for f in archivos if f.endswith(('.jpg', '.png', '.jpeg'))]
                         responder(chat_id, f"📸 Tickets guardados: {len(fotos)}")
-
-                    else:
-                        # 🤖 ASISTENTE IA DE ATENCIÓN AL CLIENTE 24/7 (Groq)
-                        groq_key = os.getenv("GROQ_API_KEY")
-                        if groq_key:
-                            try:
-                                from groq import Groq
-                                ai_client = Groq(api_key=groq_key)
-                                prompt_soporte = f"""
-Eres "TacoBot", el asistente oficial de atención a clientes y soporte de Rey Taco Picks.
-Un usuario en Telegram te ha enviado este mensaje:
-"{raw_text}"
-
-INFORMACIÓN OFICIAL DEL SERVICIO:
-- Suscripción VIP: Acceso completo a picks +EV, Córners, Hándicaps y 3 Parlays diarios en https://reytacopicks.com y en Telegram.
-- PAGO POR TRANSFERENCIA SPEI (BBVA México):
-  • Banco: BBVA México
-  • Beneficiario / Titular: Rey Taco Picks
-  • Cuenta CLABE: 012 180 01522813375 9
-  • Concepto: Su correo electrónico
-- CONTACTO DIRECTO WHATSAPP:
-  • WhatsApp oficial de atención: +52 56 3933 1102 (https://wa.me/525639331102)
-- FACTURACIÓN: Factura global disponible para todas las suscripciones.
-
-INSTRUCCIONES DE RESPUESTA:
-- Responde en español con tono amable, profesional y entusiasta (usa emojis acordes 🌮👑).
-- Si preguntan por pagos, cuentas o cómo suscribirse, proporciona los datos de BBVA y el WhatsApp oficial.
-- Si preguntan por términos de apuestas (Hándicap, Córners, Over/Under), explícaselos de forma sencilla y clara.
-- Mantén la respuesta concisa y directa (máximo 2 párrafos).
-"""
-                                chat_completion = ai_client.chat.completions.create(
-                                    messages=[{"role": "user", "content": prompt_soporte}],
-                                    model="llama-3.1-8b-instant",
-                                    temperature=0.3
-                                )
-                                respuesta_ia = chat_completion.choices[0].message.content.strip()
-                                responder(chat_id, respuesta_ia)
-                            except Exception as e:
-                                print(f"   ⚠️ Error en respuesta IA: {e}")
-                                responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) o revisar https://reytacopicks.com 🌮")
-                        else:
-                            responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) 🌮")
-                    
+                        
         except KeyboardInterrupt:
             print("\n🛑 Listener detenido.")
             break
