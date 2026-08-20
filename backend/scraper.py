@@ -1651,7 +1651,7 @@ def formatear_pick_canal(p, numero=1, total=1):
     if razonamiento:
         msg += f"🧠 Análisis Alpha (IA):\n{razonamiento}\n\n"
         
-    msg += "🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://rey-taco-picks-web.onrender.com"
+    msg += "🌐 Desbloquea la cartera completa y calculadora en vivo:\n👉 https://reytacopicks.com"
     return msg
 
 def _enviar_telegram(picks):

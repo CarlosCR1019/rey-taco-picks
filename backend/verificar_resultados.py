@@ -263,7 +263,7 @@ def _notificar_resultados_telegram(ganados, perdidos):
             "inline_keyboard": [
                 [
                     {"text": "👑 Adquirir Pase VIP ($299 MXN)", "url": "https://wa.me/525639331102?text=Hola,%20quiero%20el%20Pase%20VIP%20de%20Rey%20Taco%20Picks"},
-                    {"text": "🌐 Ver Historial en la Web", "url": "https://rey-taco-picks-web.onrender.com/"}
+                    {"text": "🌐 Ver Historial en la Web", "url": "https://reytacopicks.com/"}
                 ]
             ]
         }

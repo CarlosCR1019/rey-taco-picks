@@ -2,10 +2,12 @@ name: Rey Taco Picks Bot (Cloud AI)
 
 on:
   schedule:
-    # Horario México (UTC-6):
+    # Horarios México (CDMX UTC-6):
     # - 10:00 AM CDMX (16:00 UTC): Cartelera Diaria Completa (Champions, Europa League, Liga MX, MLB)
-    # - 11:00 PM CDMX (05:00 UTC): Cierre Diario (Verificación ESPN) + Cartelera KBO (Corea)
+    # - 04:00 PM CDMX (22:00 UTC): Actualización Vespertina (Liga MX, MLB Noche, NFL)
+    # - 11:00 PM CDMX (05:00 UTC): Cierre Diario (Auditoría ESPN) + Cartelera KBO (Corea de madrugada)
     - cron: '0 16 * * *'   # 10:00 AM México
+    - cron: '0 22 * * *'   # 04:00 PM México
     - cron: '0 5 * * *'    # 11:00 PM México
   workflow_dispatch:        # Permite ejecutarlo manualmente desde GitHub 24/7
 

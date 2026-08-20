@@ -106,7 +106,7 @@ def responder_publico(chat_id):
             "👉 @ReyTacoPicksFree\n\n"
             "👑 Para recibir la cartera completa, córners y combinadas exclusivas antes de cada partido, adquiere tu *Pase VIP ($299 MXN)*:\n"
             "👉 Escríbenos por WhatsApp: https://wa.me/525639331102\n\n"
-            "🌐 Web Oficial: https://rey-taco-picks-web.onrender.com"
+            "🌐 Web Oficial: https://reytacopicks.com"
         )
         keyboard = {
             "inline_keyboard": [
@@ -115,7 +115,7 @@ def responder_publico(chat_id):
                     {"text": "📢 Canal Gratuito", "url": "https://t.me/ReyTacoPicksFree"}
                 ],
                 [
-                    {"text": "🌐 Visitar Web Oficial", "url": "https://rey-taco-picks-web.onrender.com/"}
+                    {"text": "🌐 Visitar Web Oficial", "url": "https://reytacopicks.com/"}
                 ]
             ]
         }
@@ -303,7 +303,7 @@ Un usuario en Telegram te ha enviado este mensaje:
 "{raw_text}"
 
 INFORMACIÓN OFICIAL DEL SERVICIO:
-- Suscripción VIP: Acceso completo a picks +EV, Córners, Hándicaps y 3 Parlays diarios en https://rey-taco-picks-web.onrender.com y en Telegram.
+- Suscripción VIP: Acceso completo a picks +EV, Córners, Hándicaps y 3 Parlays diarios en https://reytacopicks.com y en Telegram.
 - PAGO POR TRANSFERENCIA SPEI (BBVA México):
   • Banco: BBVA México
   • Beneficiario / Titular: Rey Taco Picks
@@ -328,7 +328,7 @@ INSTRUCCIONES DE RESPUESTA:
                                 responder(chat_id, respuesta_ia)
                             except Exception as e:
                                 print(f"   ⚠️ Error en respuesta IA: {e}")
-                                responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) o revisar https://rey-taco-picks-web.onrender.com 🌮")
+                                responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) o revisar https://reytacopicks.com 🌮")
                         else:
                             responder(chat_id, "👑 ¡Hola! Para suscribirte al VIP o dudas de pagos por SPEI, puedes contactarnos en WhatsApp: 5639331102 (https://wa.me/525639331102) 🌮")
                     
