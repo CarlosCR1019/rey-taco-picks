@@ -1042,13 +1042,13 @@ function renderPicks(picks: any[]) {
 async function fetchPicks() {
   if (supabase) {
     try {
-      // ÚNICAMENTE traer jugadas activas / pendientes de hoy
+      // Traer todas las jugadas activas / pendientes de ambas plataformas
       const { data, error } = await supabase
         .from('picks')
         .select('*')
         .eq('estado', 'pendiente')
         .order('id', { ascending: false })
-        .limit(20);
+        .limit(100);
 
       if (error) throw error;
       if (data && data.length > 0) {
