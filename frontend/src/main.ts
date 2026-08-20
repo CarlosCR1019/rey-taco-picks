@@ -865,7 +865,7 @@ function renderPicks(picks: any[]) {
   container.className = 'picks-grid';
   
   container.innerHTML = picks.map((pick: any, index: number) => {
-    const isLocked = index > 0 && !isSubscribed;
+    const isLocked = (index >= 3 || pick.es_parlay) && !isSubscribed;
     const sportClass = getSportColorClass(pick.categoria || pick.deporte || '');
     const confValue = parseInt(pick.confianza) || 0;
     const platformUrl = 'https://www.playdoit.mx/es/';
@@ -876,10 +876,10 @@ function renderPicks(picks: any[]) {
       <div class="pick-card ${isLocked ? 'locked' : ''} ${pick.es_parlay ? 'parlay-card' : ''}">
         ${isLocked ? `
           <div class="paywall-overlay">
-            <div class="lock-icon">🔒</div>
-            <h4>Contenido Premium</h4>
-            <p>Suscríbete para desbloquear el análisis completo y multiplicar tus ganancias.</p>
-            <button class="unlock-btn" onclick="document.querySelector('.premium-badge').click()">Suscribirse / Iniciar Sesión</button>
+            <div class="lock-icon">👑🔒</div>
+            <h4>Pase VIP Exclusivo</h4>
+            <p>${pick.es_parlay ? 'Desbloquea este Parlay y combinadas de alta cuota con el Pase VIP ($299 MXN).' : 'Desbloquea la cartera completa y proyecciones matemáticas con tu Pase VIP ($299 MXN/mes).'}</p>
+            <button class="unlock-btn" onclick="document.querySelector('.premium-badge').click()">👑 Activar Pase VIP ($299 MXN)</button>
           </div>
         ` : ''}
         
