@@ -1899,172 +1899,38 @@ button {
   margin-bottom: 1.5rem;
 }
 
-.platform-tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1.1rem 1.5rem;
-  background: rgba(17, 24, 39, 0.85);
-  border: 2px solid #1e293b;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.platform-tab:hover {
-  border-color: #3b82f6;
-  transform: translateY(-2px);
-  background: rgba(30, 41, 59, 0.9);
-}
-
-.platform-tab.active[data-platform="playdoit"] {
-  border-color: #ef4444;
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(17, 24, 39, 0.95));
-  box-shadow: 0 0 25px rgba(239, 68, 68, 0.3);
-}
-
-.platform-tab.active[data-platform="draftea"] {
-  border-color: #a855f7;
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(17, 24, 39, 0.95));
-  box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
-}
-
-.platform-tab-header {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.3rem;
-}
-
-.platform-tab-icon {
-  font-size: 1.4rem;
-}
-
-.platform-tab-title {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #fff;
-}
-
-.platform-tab.active[data-platform="playdoit"] .platform-tab-title {
-  color: #ff5252;
-}
-
-.platform-tab.active[data-platform="draftea"] .platform-tab-title {
-  color: #c084fc;
-}
-
-.platform-tab-sub {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-.platform-tab.active .platform-tab-sub {
-  color: #e2e8f0;
-}
-
-/* ============================================================ */
-/* THEME: PLAYDOIT (Rojos / Carmesí / Oro)                     */
-/* ============================================================ */
-.picks-section.theme-playdoit .filter-pill.active {
+.filter-pill.active {
   background: linear-gradient(135deg, #ef4444, #b91c1c);
   border-color: #ef4444;
   color: #fff;
   box-shadow: 0 0 14px rgba(239, 68, 68, 0.45);
 }
 
-.picks-section.theme-playdoit .filter-pill:hover {
+.filter-pill:hover {
   border-color: #ef4444;
 }
 
-.picks-section.theme-playdoit .pick-card {
+.pick-card {
   border-color: rgba(239, 68, 68, 0.22);
 }
 
-.picks-section.theme-playdoit .pick-card:hover {
+.pick-card:hover {
   border-color: #ef4444;
   box-shadow: 0 4px 22px rgba(239, 68, 68, 0.28);
 }
 
-.picks-section.theme-playdoit .pick-odds {
+.pick-odds {
   color: #ff5252;
 }
 
-.picks-section.theme-playdoit .btn-playdoit-pick {
+.btn-playdoit-pick {
   background: linear-gradient(90deg, #dc2626, #991b1b);
   border-color: #ef4444;
   color: #fff;
   box-shadow: 0 2px 10px rgba(220, 38, 38, 0.4);
 }
 
-.picks-section.theme-playdoit .btn-playdoit-pick:hover {
+.btn-playdoit-pick:hover {
   background: linear-gradient(90deg, #ef4444, #b91c1c);
   transform: translateY(-2px);
-}
-
-/* ============================================================ */
-/* THEME: DRAFTEA (Morados / Violeta / Púrpura Eléctrico)       */
-/* ============================================================ */
-.picks-section.theme-draftea .filter-pill.active {
-  background: linear-gradient(135deg, #9333ea, #6b21a8);
-  border-color: #a855f7;
-  color: #fff;
-  box-shadow: 0 0 16px rgba(147, 51, 234, 0.5);
-}
-
-.picks-section.theme-draftea .filter-pill:hover {
-  border-color: #a855f7;
-}
-
-.picks-section.theme-draftea .pick-card {
-  border-color: rgba(147, 51, 234, 0.28);
-}
-
-.picks-section.theme-draftea .pick-card:hover {
-  border-color: #a855f7;
-  box-shadow: 0 4px 22px rgba(147, 51, 234, 0.35);
-}
-
-.picks-section.theme-draftea .pick-odds {
-  color: #c084fc;
-}
-
-.picks-section.theme-draftea .banca-plus-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  background: linear-gradient(90deg, #9333ea, #6b21a8);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 800;
-  padding: 0.25rem 0.6rem;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  box-shadow: 0 2px 10px rgba(147, 51, 234, 0.5);
-  margin-bottom: 0.5rem;
-  border: 1px solid #c084fc;
-}
-
-.picks-section.theme-draftea .btn-playdoit-pick {
-  background: linear-gradient(90deg, #9333ea, #6b21a8);
-  border-color: #a855f7;
-  color: #fff;
-  box-shadow: 0 2px 12px rgba(147, 51, 234, 0.45);
-}
-
-.picks-section.theme-draftea .btn-playdoit-pick:hover {
-  background: linear-gradient(90deg, #a855f7, #7e22ce);
-  transform: translateY(-2px);
-}
-
-@media (max-width: 640px) {
-  .platform-tabs-container {
-    grid-template-columns: 1fr;
-    gap: 0.8rem;
-  }
 }

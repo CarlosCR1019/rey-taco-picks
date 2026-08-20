@@ -69,24 +69,6 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <span class="picks-count-tag" id="picks-counter">6 Picks +EV</span>
         </div>
 
-        <!-- Primary Platform Tabs (Playdoit vs Draftea BANCA+) -->
-        <div class="platform-tabs-container" id="platform-tabs">
-          <div class="platform-tab active" data-platform="playdoit" id="tab-playdoit">
-            <div class="platform-tab-header">
-              <span class="platform-tab-icon">🎰</span>
-              <span class="platform-tab-title">Playdoit Sportsbook</span>
-            </div>
-            <span class="platform-tab-sub">1X2, Córners, Totales y Parlays +EV</span>
-          </div>
-          <div class="platform-tab" data-platform="draftea" id="tab-draftea">
-            <div class="platform-tab-header">
-              <span class="platform-tab-icon">🔥</span>
-              <span class="platform-tab-title">Draftea Fantasy & Props</span>
-            </div>
-            <span class="platform-tab-sub">Remates a Puerta, Dúos y Regla BANCA+ (Suplente Suma)</span>
-          </div>
-        </div>
-
         <!-- Sport & League Filter Pills -->
         <div class="filter-bar" id="filter-bar">
           <button class="filter-pill active" data-filter="all">🎯 Todos</button>
@@ -784,45 +766,10 @@ function getSportColorClass(sport: string) {
 
 let allPicksData: any[] = [];
 let currentFilter: string = 'all';
-let activePlatform: 'playdoit' | 'draftea' = 'playdoit';
 
-function updatePlatformUI() {
-  const filterBar = document.getElementById('filter-bar')!;
-  const picksSection = document.querySelector('.picks-section');
-  if (picksSection) {
-    if (activePlatform === 'playdoit') {
-      picksSection.classList.remove('theme-draftea');
-      picksSection.classList.add('theme-playdoit');
-    } else {
-      picksSection.classList.remove('theme-playdoit');
-      picksSection.classList.add('theme-draftea');
-    }
-  }
-  
-  if (!filterBar) return;
-  
-  if (activePlatform === 'playdoit') {
-    filterBar.innerHTML = `
-      <button class="filter-pill active" data-filter="all">🎯 Todos Playdoit</button>
-      <button class="filter-pill" data-filter="champions">🇪🇺 Champions League</button>
-      <button class="filter-pill" data-filter="ligamx">🇲🇽 Liga MX</button>
-      <button class="filter-pill" data-filter="futbol">⚽ Fútbol Global</button>
-      <button class="filter-pill" data-filter="corners">⛳ Tiros de Esquina</button>
-      <button class="filter-pill" data-filter="mlb">⚾ Béisbol MLB</button>
-      <button class="filter-pill" data-filter="kbo">🇰🇷 KBO (Corea)</button>
-      <button class="filter-pill" data-filter="nfl">🏈 NFL</button>
-      <button class="filter-pill" data-filter="parlays">🔗 Parlays +EV</button>
-    `;
-  } else {
-    filterBar.innerHTML = `
-      <button class="filter-pill active" data-filter="all">🔥 Todos Draftea (BANCA+)</button>
-      <button class="filter-pill" data-filter="remates">🎯 Remates a Puerta</button>
-      <button class="filter-pill" data-filter="duos">🚀 Dúos & Tríos BANCA+</button>
-      <button class="filter-pill" data-filter="ligamx_props">🇲🇽 Liga MX Props</button>
-      <button class="filter-pill" data-filter="europa_props">🇪🇺 Europa Props</button>
-    `;
-  }
-  
+// Setup Filter Pills
+const filterBar = document.getElementById('filter-bar');
+if (filterBar) {
   filterBar.querySelectorAll('.filter-pill').forEach(btn => {
     btn.addEventListener('click', (e) => {
       filterBar.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
@@ -832,136 +779,85 @@ function updatePlatformUI() {
       filterAndRenderPicks();
     });
   });
-  
-  currentFilter = 'all';
-  filterAndRenderPicks();
 }
 
 function filterAndRenderPicks() {
   let pool = allPicksData;
-  
-  if (activePlatform === 'playdoit') {
-    pool = allPicksData.filter(p => {
+  let filtered = pool;
+
+  if (currentFilter === 'champions') {
+    filtered = pool.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      const partido = (p.partido || '').toLowerCase();
+      const pickStr = (p.pick || '').toLowerCase();
+      return (cat.includes('champions') || cat.includes('uefa') || pickStr.includes('champions') || 
+              partido.includes('celtic') || partido.includes('lask') || partido.includes('hapoel') || 
+              partido.includes('arsenal') || partido.includes('coventry') || partido.includes('aston villa')) && !p.es_parlay;
+    });
+  } else if (currentFilter === 'ligamx') {
+    filtered = pool.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      const partido = (p.partido || '').toLowerCase();
+      const isLigaMxTeam = partido.includes('américa') || partido.includes('america') || 
+                           partido.includes('chivas') || partido.includes('cruz azul') || 
+                           partido.includes('tigres') || partido.includes('monterrey') || 
+                           partido.includes('pumas') || partido.includes('toluca') || 
+                           partido.includes('pachuca') || partido.includes('necaxa') || 
+                           partido.includes('leon') || partido.includes('león') || 
+                           partido.includes('atlas') || partido.includes('puebla') || 
+                           partido.includes('juárez') || partido.includes('juarez') || 
+                           partido.includes('san luis') || partido.includes('tijuana') || 
+                           partido.includes('mazatlán') || partido.includes('mazatlan') || 
+                           partido.includes('santos') || partido.includes('querétaro') || 
+                           partido.includes('queretaro') || partido.includes('atlante');
+      return (cat === 'liga mx' || (cat.includes('liga mx') && !cat.includes('mlb') && !cat.includes('fútbol')) || isLigaMxTeam) && !p.es_parlay;
+    });
+  } else if (currentFilter === 'futbol') {
+    filtered = pool.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      return (cat.includes('fútbol') || cat.includes('futbol') || cat.includes('liga mx') || 
+              cat.includes('champions') || cat.includes('uefa') || cat.includes('la liga') || 
+              cat.includes('soccer') || cat.includes('primera')) && !p.es_parlay && !cat.includes('esquina');
+    });
+  } else if (currentFilter === 'corners') {
+    filtered = pool.filter(p => {
       const cat = (p.categoria || p.deporte || '').toLowerCase();
       const pickStr = (p.pick || '').toLowerCase();
-      const razon = (p.razonamiento || '').toLowerCase();
-      return !cat.includes('draftea') && !pickStr.includes('banca+') && !razon.includes('draftea');
+      return cat.includes('esquina') || cat.includes('córner') || pickStr.includes('córner') || pickStr.includes('esquina');
     });
-  } else {
-    pool = allPicksData.filter(p => {
+  } else if (currentFilter === 'mlb') {
+    filtered = pool.filter(p => {
       const cat = (p.categoria || p.deporte || '').toLowerCase();
-      const pickStr = (p.pick || '').toLowerCase();
-      const razon = (p.razonamiento || '').toLowerCase();
-      return cat.includes('draftea') || cat.includes('prop') || cat.includes('remate') || 
-             pickStr.includes('remate') || pickStr.includes('tiro a puerta') || pickStr.includes('banca+') || 
-             razon.includes('draftea') || razon.includes('banca+');
+      const partido = (p.partido || '').toLowerCase();
+      return (cat.includes('mlb') || (cat.includes('béisbol') && !cat.includes('kbo'))) && 
+             !partido.includes('kia') && !partido.includes('landers');
     });
+  } else if (currentFilter === 'kbo') {
+    filtered = pool.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      const partido = (p.partido || '').toLowerCase();
+      return cat.includes('kbo') || cat.includes('corea') || partido.includes('kia tigers') || partido.includes('lg twins');
+    });
+  } else if (currentFilter === 'nfl') {
+    filtered = pool.filter(p => {
+      const cat = (p.categoria || p.deporte || '').toLowerCase();
+      const partido = (p.partido || '').toLowerCase();
+      return cat.includes('nfl') || cat.includes('fútbol americano') || partido.includes('chiefs') || partido.includes('49ers');
+    });
+  } else if (currentFilter === 'parlays') {
+    filtered = pool.filter(p => p.es_parlay);
   }
 
-  let filtered = pool;
-  if (activePlatform === 'playdoit') {
-    if (currentFilter === 'champions') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        const partido = (p.partido || '').toLowerCase();
-        const pickStr = (p.pick || '').toLowerCase();
-        return (cat.includes('champions') || cat.includes('uefa') || pickStr.includes('champions') || 
-                partido.includes('celtic') || partido.includes('lask') || partido.includes('hapoel') || 
-                partido.includes('sabah') || partido.includes('nijmegen') || partido.includes('slovan') || 
-                partido.includes('celje') || partido.includes('zagreb') || partido.includes('glimt') || 
-                partido.includes('lille') || partido.includes('slavia') || partido.includes('galatasaray')) && !p.es_parlay;
-      });
-    } else if (currentFilter === 'ligamx') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        const partido = (p.partido || '').toLowerCase();
-        const isMlsOrEurope = partido.includes('columbus') || partido.includes('montreal') || 
-                              partido.includes('inter miami') || partido.includes('philadelphia') || 
-                              partido.includes('chicago fire') || partido.includes('orlando city') || 
-                              partido.includes('atletico') || partido.includes('atlético');
-        if (isMlsOrEurope) return false;
-        const isLigaMxTeam = partido.includes('américa') || partido.includes('america') || 
-                             partido.includes('chivas') || partido.includes('cruz azul') || 
-                             partido.includes('tigres') || partido.includes('monterrey') || 
-                             partido.includes('pumas') || partido.includes('toluca') || 
-                             partido.includes('pachuca') || partido.includes('necaxa') || 
-                             partido.includes('leon') || partido.includes('león') || 
-                             partido.includes('atlas') || partido.includes('puebla') || 
-                             partido.includes('juárez') || partido.includes('juarez') || 
-                             partido.includes('san luis') || partido.includes('tijuana') || 
-                             partido.includes('mazatlán') || partido.includes('mazatlan') || 
-                             partido.includes('santos') || partido.includes('querétaro') || 
-                             partido.includes('queretaro') || partido.includes('atlante');
-        return (cat === 'liga mx' || (cat.includes('liga mx') && !cat.includes('mlb') && !cat.includes('fútbol')) || isLigaMxTeam) && !p.es_parlay;
-      });
-    } else if (currentFilter === 'futbol') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        return (cat.includes('fútbol') || cat.includes('futbol') || cat.includes('liga mx') || 
-                cat.includes('champions') || cat.includes('uefa') || cat.includes('la liga') || 
-                cat.includes('soccer') || cat.includes('primera')) && !p.es_parlay && !cat.includes('esquina');
-      });
-    } else if (currentFilter === 'corners') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        const pickStr = (p.pick || '').toLowerCase();
-        return cat.includes('esquina') || cat.includes('córner') || pickStr.includes('córner') || pickStr.includes('esquina');
-      });
-    } else if (currentFilter === 'mlb') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        const partido = (p.partido || '').toLowerCase();
-        return (cat.includes('mlb') || (cat.includes('béisbol') && !cat.includes('kbo'))) && 
-               !partido.includes('kia') && !partido.includes('landers');
-      });
-    } else if (currentFilter === 'kbo') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        const partido = (p.partido || '').toLowerCase();
-        return cat.includes('kbo') || cat.includes('corea') || partido.includes('kia tigers') || partido.includes('lg twins');
-      });
-    } else if (currentFilter === 'nfl') {
-      filtered = pool.filter(p => {
-        const cat = (p.categoria || p.deporte || '').toLowerCase();
-        const partido = (p.partido || '').toLowerCase();
-        return cat.includes('nfl') || cat.includes('fútbol americano') || partido.includes('chiefs') || partido.includes('49ers');
-      });
-    } else if (currentFilter === 'parlays') {
-      filtered = pool.filter(p => p.es_parlay);
-    }
-  } else {
-    if (currentFilter === 'remates') {
-      filtered = pool.filter(p => {
-        const pickStr = (p.pick || '').toLowerCase();
-        return (pickStr.includes('remate') || pickStr.includes('tiro a puerta')) && !p.es_parlay;
-      });
-    } else if (currentFilter === 'duos') {
-      filtered = pool.filter(p => p.es_parlay || (p.partido || '').toLowerCase().includes('dúo') || (p.partido || '').toLowerCase().includes('trío'));
-    } else if (currentFilter === 'ligamx_props') {
-      filtered = pool.filter(p => (p.liga || '').toLowerCase().includes('liga mx') || (p.partido || '').toLowerCase().includes('león') || (p.partido || '').toLowerCase().includes('monterrey') || (p.partido || '').toLowerCase().includes('tigres') || (p.partido || '').toLowerCase().includes('américa') || (p.partido || '').toLowerCase().includes('juárez'));
-    } else if (currentFilter === 'europa_props') {
-      filtered = pool.filter(p => (p.liga || '').toLowerCase().includes('champions') || (p.liga || '').toLowerCase().includes('europa') || (p.liga || '').toLowerCase().includes('premier') || (p.liga || '').toLowerCase().includes('serie a') || (p.liga || '').toLowerCase().includes('bundesliga') || (p.liga || '').toLowerCase().includes('la liga'));
-    }
-  }
+  const counter = document.getElementById('picks-counter');
+  if (counter) counter.textContent = `${filtered.length} Picks +EV`;
 
   renderPicks(filtered);
 }
 
-// Initial setup of platform buttons
-document.querySelectorAll('.platform-tab').forEach(tab => {
-  tab.addEventListener('click', (e) => {
-    document.querySelectorAll('.platform-tab').forEach(t => t.classList.remove('active'));
-    const target = e.currentTarget as HTMLElement;
-    target.classList.add('active');
-    activePlatform = (target.dataset.platform as any) || 'playdoit';
-    updatePlatformUI();
-  });
-});
-
 function renderPicks(picks: any[]) {
   const container = document.getElementById('picks-container')!;
   if (!picks || picks.length === 0) {
-    container.innerHTML = `<div class="loading" style="padding: 40px; text-align: center;">No hay selecciones en ${activePlatform === 'playdoit' ? 'Playdoit' : 'Draftea'} para este filtro hoy.</div>`;
+    container.innerHTML = `<div class="loading" style="padding: 40px; text-align: center;">No hay selecciones activas para este filtro hoy.</div>`;
     container.className = '';
     return;
   }
@@ -972,14 +868,9 @@ function renderPicks(picks: any[]) {
     const isLocked = index > 0 && !isSubscribed;
     const sportClass = getSportColorClass(pick.categoria || pick.deporte || '');
     const confValue = parseInt(pick.confianza) || 0;
-    const isDraftea = (pick.categoria || '').toLowerCase().includes('draftea') || (pick.pick || '').toLowerCase().includes('banca+') || (pick.razonamiento || '').toLowerCase().includes('banca+') || (pick.razonamiento || '').toLowerCase().includes('draftea');
-    
-    const platformUrl = isDraftea ? 'https://onelink.draftea.com/KO66' : 'https://www.playdoit.mx/es/';
-    const platformLabel = isDraftea ? 'Jugar Draftea ↗' : 'Apostar Playdoit ↗';
-    const platformStyle = isDraftea ? 'background: linear-gradient(90deg, #9333ea, #6b21a8); border-color: #a855f7; color: #fff; box-shadow: 0 2px 12px rgba(147, 51, 234, 0.45);' : 'background: linear-gradient(90deg, #dc2626, #991b1b); border-color: #ef4444; color: #fff; box-shadow: 0 2px 10px rgba(220, 38, 38, 0.4);';
-    const oddsFormatted = isDraftea ? (pick.cuota.toString().includes('x') ? pick.cuota : `${pick.cuota}x`) : pick.cuota;
-
-    const shareText = encodeURIComponent(`👑 REY TACO PICKS (${isDraftea ? 'DRAFTEA BANCA+' : 'PLAYDOIT'})\n🏟️ ${pick.partido}\n🎯 Pick: ${pick.pick} @ ${oddsFormatted}\n🔥 Confianza: ${pick.confianza}\n👉 Más picks en: https://reytacopicks.com`);
+    const platformUrl = 'https://www.playdoit.mx/es/';
+    const platformLabel = 'Apostar en Playdoit ↗';
+    const shareText = encodeURIComponent(`👑 REY TACO PICKS\n🏟️ ${pick.partido}\n🎯 Pick: ${pick.pick} @ Cuota ${pick.cuota}\n🔥 Confianza: ${pick.confianza}\n👉 Más picks en: https://reytacopicks.com`);
     
     return `
       <div class="pick-card ${isLocked ? 'locked' : ''} ${pick.es_parlay ? 'parlay-card' : ''}">
