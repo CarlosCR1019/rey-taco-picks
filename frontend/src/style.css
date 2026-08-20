@@ -1891,5 +1891,102 @@ button {
   }
 }
 
+/* Platform Tabs (Playdoit vs Draftea BANCA+) */
+.platform-tabs-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
 
+.platform-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.1rem 1.5rem;
+  background: rgba(17, 24, 39, 0.85);
+  border: 2px solid #1e293b;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
 
+.platform-tab:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.platform-tab.active[data-platform="playdoit"] {
+  border-color: var(--gold-accent);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(17, 24, 39, 0.95));
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+.platform-tab.active[data-platform="draftea"] {
+  border-color: #ff5722;
+  background: linear-gradient(135deg, rgba(255, 87, 34, 0.18), rgba(17, 24, 39, 0.95));
+  box-shadow: 0 0 20px rgba(255, 87, 34, 0.25);
+}
+
+.platform-tab-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.3rem;
+}
+
+.platform-tab-icon {
+  font-size: 1.4rem;
+}
+
+.platform-tab-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.platform-tab.active[data-platform="playdoit"] .platform-tab-title {
+  color: var(--gold-accent);
+}
+
+.platform-tab.active[data-platform="draftea"] .platform-tab-title {
+  color: #ff7043;
+}
+
+.platform-tab-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.platform-tab.active .platform-tab-sub {
+  color: #e2e8f0;
+}
+
+/* BANCA+ Badge on Draftea Cards */
+.banca-plus-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: linear-gradient(90deg, #ea580c, #c2410c);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .platform-tabs-container {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+}
