@@ -1571,10 +1571,8 @@ def _enviar_reporte_estado():
     try:
         token = os.getenv("TELEGRAM_BOT_TOKEN")
         chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        vip_channel_id = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
-        free_channel_id = os.getenv("TELEGRAM_FREE_CHANNEL_ID")
         
-        if not token:
+        if not token or not chat_id:
             return
 
         activos = []
@@ -1586,16 +1584,16 @@ def _enviar_reporte_estado():
                 pass
 
         hora_actual = time.strftime('%I:%M %p CDMX')
-        msg = f"👑 REY TACO PICKS • REPORTE OPERATIVO ({hora_actual}) 👑\n\n"
+        msg = f"👑 REY TACO PICKS • REPORTE OPERATIVO PRIVADO ({hora_actual}) 👑\n\n"
         msg += "🟢 Escáner de Playdoit completado con éxito.\n"
-        msg += f"📊 {len(activos)} jugadas +EV verificadas y activas sin variaciones críticas de líneas:\n\n"
+        msg += f"📊 {len(activos)} jugadas +EV activas en cartera sin cambios bruscos de líneas.\n\n"
 
         for p in activos[:6]:
             valor = " 💎" if p.get('tiene_valor') else ""
             parlay = "🔗 " if p.get('es_parlay') else "🎯 "
             msg += f"{parlay}{p.get('partido')} ➔ {p.get('pick')} @ Cuota {p.get('cuota')}{valor}\n"
 
-        msg += f"\n🌐 Consulta el análisis completo, momios y calculadora en vivo:\n👉 https://reytacopicks.com"
+        msg += f"\n🌐 Dashboard y cuotas en tiempo real:\n👉 https://reytacopicks.com"
 
         url_tg = f"https://api.telegram.org/bot{token}/sendMessage"
         keyboard = {
@@ -1607,25 +1605,12 @@ def _enviar_reporte_estado():
             ]
         }
 
-        if chat_id:
-            data = json.dumps({"chat_id": chat_id, "text": msg, "reply_markup": keyboard}).encode('utf-8')
-            req = urllib.request.Request(url_tg, data=data, headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req) as resp:
-                print("   📱 ✅ Reporte de monitoreo enviado a Carlos.")
-
-        if vip_channel_id:
-            data_vip = json.dumps({"chat_id": vip_channel_id, "text": msg, "reply_markup": keyboard}).encode('utf-8')
-            req_vip = urllib.request.Request(url_tg, data=data_vip, headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req_vip) as resp_vip:
-                print("   👑 ✅ Reporte de monitoreo enviado al Canal VIP.")
-
-        if free_channel_id:
-            data_free = json.dumps({"chat_id": free_channel_id, "text": msg, "reply_markup": keyboard}).encode('utf-8')
-            req_free = urllib.request.Request(url_tg, data=data_free, headers={'Content-Type': 'application/json'})
-            with urllib.request.urlopen(req_free) as resp_free:
-                print("   📢 ✅ Reporte de monitoreo enviado al Canal Free.")
+        data = json.dumps({"chat_id": chat_id, "text": msg, "reply_markup": keyboard}).encode('utf-8')
+        req = urllib.request.Request(url_tg, data=data, headers={'Content-Type': 'application/json'})
+        with urllib.request.urlopen(req) as resp:
+            print("   📱 ✅ Reporte de monitoreo enviado EXCLUSIVAMENTE al chat privado de Carlos.")
     except Exception as e:
-        print(f"   ⚠️ Error enviando reporte de estado: {e}")
+        print(f"   ⚠️ Error enviando reporte de estado privado: {e}")
 
 # ============================================================
 #  FASE 7: GUARDADO Y NOTIFICACIONES
