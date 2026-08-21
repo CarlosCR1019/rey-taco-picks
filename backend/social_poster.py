@@ -103,9 +103,15 @@ def ejecutar_auto_post_redes():
     print("📱 PUBLICACIÓN AUTOMÁTICA EN REDES SOCIALES (Meta Graph API)")
     print("="*60)
     
-    from social_banner import generar_banner_redes
-    banner_file = os.path.join(os.path.dirname(__file__), "banner_hoy.png")
-    generar_banner_redes(output_path=banner_file)
+    try:
+        from render_html_banner import renderizar_banner_estudio
+        banner_file = os.path.join(os.path.dirname(__file__), "banner_hoy.png")
+        renderizar_banner_estudio(output_path=banner_file)
+    except Exception as e:
+        print(f"Error renderizando banner estudio: {e}")
+        from social_banner import generar_banner_redes
+        banner_file = os.path.join(os.path.dirname(__file__), "banner_hoy.png")
+        generar_banner_redes(output_path=banner_file)
     
     publicar_en_facebook_page(image_path=banner_file)
 
