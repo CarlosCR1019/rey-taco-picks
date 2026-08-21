@@ -83,3 +83,13 @@ jobs:
         run: |
           cd backend
           python scraper.py
+
+      - name: Auto-Post Social Media Banner (Facebook & Instagram)
+        if: always()
+        env:
+          FB_PAGE_ACCESS_TOKEN: ${{ secrets.FB_PAGE_ACCESS_TOKEN }}
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+        run: |
+          cd backend
+          python social_poster.py

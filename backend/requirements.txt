@@ -3,3 +3,6 @@ undetected-chromedriver
 groq
 python-dotenv
 supabase
+Pillow
+requests
+pytesseract

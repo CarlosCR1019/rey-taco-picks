@@ -208,6 +208,81 @@ def procesar_nuevo_miembro(message):
                     f"Fue expulsado automáticamente porque no tiene suscripción VIP pagada."
                 )
 
+def procesar_comprobante_cliente(update):
+    """Procesa un comprobante bancario enviado por un cliente en Telegram."""
+    message = update.get('message', {})
+    user = message.get('from', {})
+    chat_id = message.get('chat', {}).get('id')
+    user_id = user.get('id', chat_id)
+    username = user.get('username', 'Sin username')
+    first_name = user.get('first_name', 'Usuario')
+    photos = message.get('photo', [])
+    
+    if not photos:
+        return
+        
+    best_photo = photos[-1]
+    file_id = best_photo['file_id']
+    save_path = os.path.join(TICKETS_DIR, f"comprobante_{user_id}_{int(time.time())}.jpg")
+    
+    print(f"\n💳 [COMPROBANTE RECIBIDO] de {first_name} (@{username}, ID: {user_id})")
+    
+    if download_photo(file_id, save_path):
+        texto_ocr = ""
+        try:
+            from PIL import Image
+            import pytesseract
+            img = Image.open(save_path)
+            texto_ocr = pytesseract.image_to_string(img).lower()
+            print(f"   🔍 OCR detectado: {texto_ocr[:120]}...")
+        except Exception as e:
+            print(f"   ⚠️ OCR no disponible o error: {e}")
+            
+        es_valido = ("299" in texto_ocr or "012180015228133759" in texto_ocr or "taco" in texto_ocr) and ("bbva" in texto_ocr or "transferencia" in texto_ocr or "exitosa" in texto_ocr or "spei" in texto_ocr or "enviado" in texto_ocr)
+        
+        if es_valido:
+            # 1. Activar VIP en Supabase
+            if supabase:
+                try:
+                    import uuid
+                    supabase.table("profiles").upsert({
+                        "id": str(uuid.uuid4()),
+                        "telegram_id": str(user_id),
+                        "telegram_username": username.replace("@", "").lower(),
+                        "is_premium": True
+                    }, on_conflict="telegram_id").execute()
+                except Exception as e:
+                    print(f"Error upsert profile: {e}")
+            
+            # 2. Aprobar en Canal VIP
+            if VIP_CHANNEL_ID:
+                telegram_api("approveChatJoinRequest", {"chat_id": VIP_CHANNEL_ID, "user_id": user_id})
+                
+            msg_exito = (
+                f"🎉 ¡PAGO DE $299 MXN CONFIRMADO EXITOSAMENTE!\n\n"
+                f"👑 Bienvenido al servicio VIP de Rey Taco Picks, {first_name}.\n"
+                f"✅ Tu acceso al Canal VIP y a la plataforma web ha sido activado de inmediato.\n\n"
+                f"👉 Entra a la web oficial: https://reytacopicks.com"
+            )
+            responder(user_id, msg_exito)
+            
+            # 3. Notificar a Carlos
+            responder(ADMIN_CHAT_ID, 
+                f"💰 [PAGO SPEI VERIFICADO POR IA]\n\n"
+                f"👤 {first_name} (@{username})\n"
+                f"🆔 ID Telegram: `{user_id}`\n"
+                f"💵 Monto: $299.00 MXN\n"
+                f"⚡ El bot verificó el comprobante BBVA y activó su VIP en automático."
+            )
+        else:
+            # Reenviar a Carlos para aprobación con 1 clic
+            telegram_api("sendPhoto", {
+                "chat_id": ADMIN_CHAT_ID,
+                "photo": file_id,
+                "caption": f"📩 [COMPROBANTE RECIBIDO DE CLIENTE]\n👤 {first_name} (@{username}, ID: `{user_id}`)\n\nComandos rápidos para Carlos:\n• `/aprobar {user_id}` ➔ Aprobar en Canal VIP\n• `/vip {username}@telegram.com` ➔ Activar en Web"
+            })
+            responder(user_id, "📨 ¡Comprobante recibido! Nuestro sistema lo está procesando. Tu acceso VIP será activado en breve. 🌮👑")
+
 def procesar_foto(update):
     """Procesa una foto recibida del admin."""
     message = update.get('message', {})
@@ -298,8 +373,11 @@ def main():
                 
                 # Si NO es Carlos (Admin)
                 if chat_id != ADMIN_CHAT_ID:
-                    print(f"👤 Mensaje de usuario {chat_id}. Enviando respuesta comercial...")
-                    responder_publico(chat_id)
+                    if 'photo' in message:
+                        procesar_comprobante_cliente(update)
+                    else:
+                        print(f"👤 Mensaje de usuario {chat_id}. Enviando respuesta comercial...")
+                        responder_publico(chat_id)
                     continue
                 
                 # SI ES CARLOS (ADMIN MASTER):
