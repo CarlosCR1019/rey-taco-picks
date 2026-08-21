@@ -864,8 +864,8 @@ function renderPicks(picks: any[]) {
 
   container.className = 'picks-grid';
   
-  container.innerHTML = picks.map((pick: any, index: number) => {
-    const isLocked = (index >= 3 || pick.es_parlay) && !isSubscribed;
+  container.innerHTML = picks.map((pick: any) => {
+    const isLocked = (!pick.is_free_pick || pick.es_parlay) && !isSubscribed;
     const sportClass = getSportColorClass(pick.categoria || pick.deporte || '');
     const confValue = parseInt(pick.confianza) || 0;
     const platformUrl = 'https://www.playdoit.mx/es/';
@@ -943,7 +943,14 @@ async function fetchPicks() {
 
       if (error) throw error;
       if (data && data.length > 0) {
-        allPicksData = data;
+        let freeCounter = 0;
+        allPicksData = data.map((p: any) => {
+          if (!p.es_parlay && freeCounter < 3) {
+            freeCounter++;
+            return { ...p, is_free_pick: true };
+          }
+          return { ...p, is_free_pick: false };
+        });
         filterAndRenderPicks();
       } else {
         fallbackLocalFetch();
@@ -961,13 +968,16 @@ function fallbackLocalFetch() {
   fetch('/picks.json')
     .then(r => r.json())
     .then(data => {
-      // Filtrar solo pendientes si viene con estado
       const activePicks = Array.isArray(data) ? data.filter((p: any) => p.estado === 'pendiente' || !p.estado) : [];
-      if (activePicks.length > 0) {
-        allPicksData = activePicks;
-      } else {
-        allPicksData = data;
-      }
+      const pool = activePicks.length > 0 ? activePicks : data;
+      let freeCounter = 0;
+      allPicksData = pool.map((p: any) => {
+        if (!p.es_parlay && freeCounter < 3) {
+          freeCounter++;
+          return { ...p, is_free_pick: true };
+        }
+        return { ...p, is_free_pick: false };
+      });
       filterAndRenderPicks();
     })
     .catch(() => {
