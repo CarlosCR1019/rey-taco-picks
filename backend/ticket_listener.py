@@ -14,6 +14,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
 VIP_CHANNEL_ID = os.getenv("TELEGRAM_VIP_CHANNEL_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
+FREE_CHANNEL_ID = os.getenv("TELEGRAM_FREE_CHANNEL_ID", "-1004387927424")
 ADMIN_CHAT_ID = int(os.getenv("TELEGRAM_CHAT_ID", "5912533842"))
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
@@ -51,7 +52,7 @@ def telegram_api(method, payload):
         return None
 
 def get_updates(offset=0):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates?offset={offset}&timeout=30"
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/{getUpdates}?offset={offset}&timeout=30".replace("{getUpdates}", "getUpdates")
     try:
         req = urllib.request.Request(url)
         with urllib.request.urlopen(req, timeout=35) as resp:
@@ -76,15 +77,18 @@ def download_photo(file_id, save_path):
         return False
 
 def reenviar_a_canal(file_id, caption=""):
-    """Reenvía la foto al canal público con caption."""
-    target = VIP_CHANNEL_ID or CHANNEL_ID
-    if target:
-        telegram_api("sendPhoto", {
-            "chat_id": target,
-            "photo": file_id,
-            "caption": caption or "🏆 ¡Ticket Ganador! Otra victoria más para Rey Taco Picks 👑🌮"
-        })
-        print("   📢 Foto reenviada al canal.")
+    """Reenvía la foto a AMBOS canales: Canal VIP y Canal Gratuito."""
+    canales = list(set([c for c in [VIP_CHANNEL_ID, FREE_CHANNEL_ID, CHANNEL_ID] if c]))
+    for cid in canales:
+        try:
+            telegram_api("sendPhoto", {
+                "chat_id": cid,
+                "photo": file_id,
+                "caption": caption or "🏆 ¡Ticket Ganador! Otra victoria más para Rey Taco Picks 👑🌮"
+            })
+            print(f"   📢 Foto de ticket enviada exitosamente a canal {cid}.")
+        except Exception as e:
+            print(f"   ⚠️ Error enviando a canal {cid}: {e}")
 
 def responder(chat_id, texto, reply_markup=None):
     payload = {"chat_id": chat_id, "text": texto}
