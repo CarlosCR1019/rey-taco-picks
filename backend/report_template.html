@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Montserrat:wght@600;700;800;900&family=Outfit:wght@500;600;700;800;900&display=swap');
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body {
+    width: 600px;
+    height: 1050px;
+    overflow: hidden;
+    background: #030712;
+  }
+
+  .infographic-container {
+    width: 600px;
+    height: 1050px;
+    background: radial-gradient(circle at 50% 15%, #181c2e 0%, #0c0f18 45%, #05070d 100%);
+    font-family: 'Montserrat', sans-serif;
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 30px 30px 25px 30px;
+  }
+
+  /* Filigrana y Marco Dorado Barroco */
+  .outer-gold-border {
+    position: absolute;
+    inset: 12px;
+    border: 2px solid rgba(212, 175, 55, 0.6);
+    border-radius: 18px;
+    pointer-events: none;
+    box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.15);
+  }
+
+  .inner-gold-border {
+    position: absolute;
+    inset: 16px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 14px;
+    pointer-events: none;
+  }
+
+  .corner-taco {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    z-index: 20;
+  }
+  .corner-tl { top: 18px; left: 18px; }
+  .corner-tr { top: 18px; right: 18px; }
+  .corner-bl { bottom: 18px; left: 18px; }
+  .corner-br { bottom: 18px; right: 18px; }
+
+  /* Background Chart Lines */
+  .bg-chart {
+    position: absolute;
+    top: 50px;
+    left: 40px;
+    right: 40px;
+    height: 140px;
+    opacity: 0.15;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 150'%3E%3Cpolyline fill='none' stroke='%23facc15' stroke-width='4' points='0,120 100,90 200,110 300,50 400,70 500,20'/%3E%3Cpolyline fill='none' stroke='%2322c55e' stroke-width='3' points='0,140 120,110 240,80 360,40 500,10'/%3E%3C/svg%3E") no-repeat center;
+    background-size: contain;
+    pointer-events: none;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    position: relative;
+    z-index: 10;
+  }
+
+  .logo-shield {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 8px auto;
+    display: block;
+    filter: drop-shadow(0 0 20px rgba(234, 179, 8, 0.6));
+    border-radius: 50%;
+  }
+
+  .title-pill {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.9) 100%);
+    border: 1.5px solid #d4af37;
+    border-radius: 12px;
+    padding: 8px 16px;
+    display: inline-block;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  }
+
+  .title-pill h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #fef08a;
+    text-transform: uppercase;
+  }
+
+  /* Total Jornada KPI Box */
+  .kpi-section {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(10, 15, 26, 0.95) 100%);
+    border: 1.5px solid #d4af37;
+    border-radius: 14px;
+    padding: 12px 20px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    position: relative;
+    z-index: 10;
+  }
+
+  .kpi-label {
+    font-size: 13px;
+    font-weight: 900;
+    color: #cbd5e1;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .kpi-value {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 38px;
+    font-weight: 900;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 2px;
+  }
+
+  .kpi-value .gold-check {
+    color: #eab308;
+    filter: drop-shadow(0 0 12px rgba(234, 179, 8, 0.8));
+  }
+
+  /* Panel de Ganancias */
+  .panel-box {
+    background: rgba(11, 16, 28, 0.85);
+    border: 1.5px solid rgba(212, 175, 55, 0.4);
+    border-radius: 14px;
+    padding: 12px 14px;
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .panel-header-title {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #fde047;
+    text-align: center;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .wins-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .win-card {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 130px;
+  }
+
+  .win-match {
+    font-size: 11px;
+    font-weight: 800;
+    color: #f8fafc;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .win-pick {
+    font-size: 10px;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .win-odds {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 6px;
+  }
+
+  .win-badge {
+    background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+    color: #86efac;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 3px 0;
+    border-radius: 6px;
+    border: 1px solid #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+  }
+
+  /* Panel de Variance */
+  .variance-box {
+    background: rgba(11, 16, 28, 0.85);
+    border: 1.5px solid rgba(239, 68, 68, 0.4);
+    border-radius: 14px;
+    padding: 12px 14px;
+    position: relative;
+    z-index: 10;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .variance-title {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #fca5a5;
+    text-align: center;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .variance-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 10px;
+  }
+
+  .var-loss-card {
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .var-loss-badge {
+    background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+    color: #fca5a5;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 3px 0;
+    border-radius: 6px;
+    border: 1px solid #ef4444;
+  }
+
+  .notes-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 9.5px;
+    color: #cbd5e1;
+    line-height: 1.35;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .notes-card strong {
+    color: #fde047;
+    font-size: 10px;
+    margin-bottom: 2px;
+    display: block;
+  }
+
+  /* Bottom Gold Button */
+  .ev-gold-btn {
+    background: linear-gradient(180deg, #fef08a 0%, #eab308 40%, #ca8a04 100%);
+    color: #0f172a;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-align: center;
+    padding: 10px 0;
+    border-radius: 10px;
+    box-shadow: 0 0 25px rgba(234, 179, 8, 0.5), inset 0 1px 0 #ffffff;
+    border: 1px solid #fef08a;
+    position: relative;
+    z-index: 10;
+    text-transform: uppercase;
+  }
+
+  /* Footer Telegram CTA */
+  .footer-cta {
+    text-align: center;
+    position: relative;
+    z-index: 10;
+  }
+
+  .footer-cta-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #cbd5e1;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .footer-telegram-url {
+    font-size: 26px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  }
+</style>
+</head>
+<body>
+
+<div class="infographic-container" id="infographic-root">
+  <div class="outer-gold-border"></div>
+  <div class="inner-gold-border"></div>
+  <div class="bg-chart"></div>
+
+  <!-- Corner Icons -->
+  <img src="../frontend/public/logo.jpg" class="corner-taco corner-tl" style="border-radius: 50%; border: 1px solid #d4af37;" />
+  <img src="../frontend/public/logo.jpg" class="corner-taco corner-tr" style="border-radius: 50%; border: 1px solid #d4af37;" />
+  <img src="../frontend/public/logo.jpg" class="corner-taco corner-bl" style="border-radius: 50%; border: 1px solid #d4af37;" />
+  <img src="../frontend/public/logo.jpg" class="corner-taco corner-br" style="border-radius: 50%; border: 1px solid #d4af37;" />
+
+  <!-- Header -->
+  <div class="header">
+    <img src="../frontend/public/logo.jpg" class="logo-shield" alt="Rey Taco Picks" />
+    <div class="title-pill">
+      <h2>REPORTE DE RESULTADOS &bull; JORNADA IA</h2>
+    </div>
+  </div>
+
+  <!-- KPI Total de la Jornada -->
+  <div class="kpi-section">
+    <div class="kpi-label">TOTAL DE LA JORNADA:</div>
+    <div class="kpi-value">
+      3 / 4 ACIERTOS <span class="gold-check">✔</span>
+    </div>
+  </div>
+
+  <!-- Panel de Ganancias -->
+  <div class="panel-box">
+    <div class="panel-header-title">PANEL DE GANANCIAS</div>
+    <div class="wins-grid">
+      <!-- Win 1 -->
+      <div class="win-card">
+        <div class="win-match">Tigres UANL vs Atlante</div>
+        <div class="win-pick">Más de 2.5 Goles</div>
+        <div class="win-odds">Momio 1.67 ✔</div>
+        <div class="win-badge">GANADO ✔</div>
+      </div>
+      <!-- Win 2 -->
+      <div class="win-card">
+        <div class="win-match">Juarez vs America</div>
+        <div class="win-pick">Más de 2.5 Goles</div>
+        <div class="win-odds">Momio 1.74 ✔</div>
+        <div class="win-badge">GANADO ✔</div>
+      </div>
+      <!-- Win 3 -->
+      <div class="win-card">
+        <div class="win-match">WAS vs Rangers</div>
+        <div class="win-pick">Más de 7.5 Carreras</div>
+        <div class="win-odds">Momio 1.95 ✔</div>
+        <div class="win-badge">GANADO ✔</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel de Variance -->
+  <div class="variance-box">
+    <div class="variance-title">PANEL DE VARIANCE (LA &Uacute;NICA P&Eacute;RDIDA)</div>
+    <div class="variance-grid">
+      <div class="var-loss-card">
+        <div class="win-match">Club Leon vs Monterrey</div>
+        <div class="win-pick">Más de 3.5 Goles</div>
+        <div class="win-odds">Momio 2.25 ✖</div>
+        <div class="var-loss-badge">P&Eacute;RDIDA ✖</div>
+      </div>
+      <div class="notes-card">
+        <strong>NOTAS DEL REY:</strong>
+        Dominio ofensivo claro, pero la falta de contundencia en los últimos minutos cerró el marcador. El 3/4 general es sumamente rentable y demuestra el valor matemático a largo plazo.
+      </div>
+    </div>
+  </div>
+
+  <!-- +EV Detected Button -->
+  <div class="ev-gold-btn">
+    +EV DETECTADO: SISTEMA FUNCIONANDO
+  </div>
+
+  <!-- Footer Telegram CTA -->
+  <div class="footer-cta">
+    <div class="footer-cta-title">&Uacute;NETE AL CANAL VIP PARA RECUPERAR Y SUMAR:</div>
+    <div class="footer-telegram-url">t.me/ReyTacoPicks</div>
+  </div>
+</div>
+
+</body>
+</html>
