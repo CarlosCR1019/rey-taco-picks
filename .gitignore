@@ -3,16 +3,20 @@ node_modules/
 __pycache__/
 *.pyc
 
-# Environment
+# Environment & Secrets
 .env
 .env.local
+.env.*
+backend/.env
 
-# Chrome data
+# Chrome data & offsets
 .telegram_offset
+backend/.telegram_offset
 
-# OS
+# OS & Logs
 .DS_Store
 Thumbs.db
+*.log
 
 # IDE
 .vscode/
@@ -20,3 +24,21 @@ Thumbs.db
 
 # Build
 frontend/dist/
+
+# Scratch & Temporary test scripts
+test_*.py
+publish_*.py
+query_*.py
+list_*.py
+inspect_*.py
+find_*.py
+debug_*.py
+cdp_*.py
+meta_*.py
+upload_*.py
+get_*.py
+render_story_hd.py
+*.jpg
+*.png
+!frontend/public/logo.jpg
+!frontend/public/tickets/*.jpg
